@@ -139,9 +139,17 @@ func (d *Client) Stats() error {
 	return err
 }
 
-func (d *Client) SeekCur() error {
-	res, err := d.exec("seekcur +10")
-	fmt.Printf("%v\n", res)
+func (d *Client) SeekOffset(offset int) error {
+	sig := "+"
+	if offset < 0 {
+		sig = ""
+	}
+	_, err := d.exec(fmt.Sprintf("seekcur %s%d", sig, offset))
+	return err
+}
+
+func (d *Client) SeekTo(seconds int) error {
+	_, err := d.exec(fmt.Sprintf("seekcur %d", seconds))
 	return err
 }
 

@@ -43,6 +43,24 @@ func main() {
 			}
 			fmt.Printf("[%s] %s: %s\n", st.State, s.Artist, s.Title)
 			fmt.Printf("%02.2f:%02.2f\n", sdur.Minutes(), sdur.Seconds())
+		case "f":
+			// Forward seek +10s.
+			err := mp.SeekOffset(10)
+			if err != nil {
+				log.Print(err)
+			}
+		case "b":
+			// Backward seek -10s.
+			st, err := mp.Status()
+			if err != nil {
+				log.Print(err)
+			}
+			// Seek to absolute time. Relative backward seeking not working as expected, whereas
+			// forward seeking works well.
+			err = mp.SeekTo(int(st.Elapsed) - 10)
+			if err != nil {
+				log.Print(err)
+			}
 		case "":
 		default:
 			fmt.Println("Unknown command")
