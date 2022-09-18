@@ -73,6 +73,13 @@ func main() {
 				log.Print(err)
 				continue
 			}
+		case "t":
+			// Toogle.
+			err := mp.Toggle()
+			if err != nil {
+				log.Print(err)
+				continue
+			}
 		case "":
 		default:
 			fmt.Println("Unknown command")

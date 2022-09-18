@@ -121,7 +121,7 @@ func (d *Client) Status() (*types.Status, error) {
 	if err != nil {
 		return nil, eris.Wrap(err, "status")
 	}
-	if res["Id"] == "" {
+	if res["duration"] == "" {
 		// Empty reply, no current song.
 		return nil, types.ErrNoSong
 	}
@@ -150,7 +150,13 @@ func (d *Client) Status() (*types.Status, error) {
 func (d *Client) Stats() error {
 	res, err := d.exec("stats")
 	fmt.Printf("%v\n", res)
-	return err
+	return eris.Wrap(err, "stats")
+}
+
+// Toggle pauses or resumes playback. The pause state is toggled.
+func (d *Client) Toggle() error {
+	_, err := d.exec("pause")
+	return eris.Wrap(err, "toggle")
 }
 
 func (d *Client) SeekOffset(offset int) error {
