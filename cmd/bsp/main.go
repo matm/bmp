@@ -5,39 +5,55 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strings"
-	"time"
 
 	"github.com/rotisserie/eris"
 )
 
 // https://mpd.readthedocs.io/en/latest/protocol.html
 
-type mpd struct{}
+type mpd struct {
+	conn *net.TCPConn
+}
 type response map[string]string
 
-func (d *mpd) dial() (net.Conn, error) {
-	return net.DialTimeout("tcp", "musik:6600", 5*time.Second)
-}
+const (
+	// ReplyOK is an OK reply from mpd. The command went fine.
+	ReplyOK = "OK"
+	// ReplyACK is mpd's way letting know there is an error.
+	ReplyACK = "ACK"
+)
 
-func (d *mpd) exec(cmd string) (response, error) {
-	conn, err := d.dial()
+func dial() (*net.TCPConn, error) {
+	ips, err := net.LookupIP(os.Getenv("MPD_HOST"))
 	if err != nil {
 		return nil, eris.Wrap(err, "dial")
 	}
-	defer conn.Close()
+	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
+		IP:   ips[0],
+		Port: 6600,
+	})
+	if err != nil {
+		return nil, eris.Wrap(err, "dial")
+	}
+	// Keep the TCP connection alive.
+	conn.SetKeepAlive(true)
+	return conn, nil
+}
 
-	fmt.Fprintf(conn, "%s\n", cmd)
-	sc := bufio.NewScanner(conn)
+func (d *mpd) exec(cmd string) (response, error) {
+	fmt.Fprintf(d.conn, "%s\n", cmd)
+	sc := bufio.NewScanner(d.conn)
 
 	resp := make(response)
 
 	for sc.Scan() {
 		line := sc.Text()
-		if line == "OK" {
+		if line == ReplyOK {
 			break
 		}
-		if strings.HasPrefix(line, "ACK") {
+		if strings.HasPrefix(line, ReplyACK) {
 			// Some error.
 			return nil, eris.New(line)
 		}
@@ -47,7 +63,7 @@ func (d *mpd) exec(cmd string) (response, error) {
 			resp[sp[0]] = sp[1]
 		}
 	}
-	err = sc.Err()
+	err := sc.Err()
 	if err != nil {
 		return nil, eris.Wrap(err, "scan")
 	}
@@ -84,13 +100,43 @@ func (d *mpd) Stop() error {
 }
 
 func newMPD() *mpd {
-	return &mpd{}
+	conn, err := dial()
+	if err != nil {
+		log.Fatal(err)
+	}
+	return &mpd{conn}
 }
 
 func main() {
-	// TODO: read $MPD_HOST
-	s := newMPD()
-	if err := s.Status(); err != nil {
-		log.Fatal(err)
+	mp := newMPD()
+
+	r := bufio.NewReader(os.Stdin)
+	quit := false
+	for !quit {
+		fmt.Printf("> ")
+		ch, _, err := r.ReadLine()
+		if err != nil {
+			log.Println(err)
+		}
+		switch string(ch) {
+		case "q", "quit", "exit":
+			quit = true
+			fmt.Println("Bye!")
+		case "m":
+			fmt.Println("MARK")
+		case "i":
+			// Current song info.
+			err := mp.CurrentSong()
+			if err != nil {
+				log.Print(err)
+			}
+			err = mp.Status()
+			if err != nil {
+				log.Print(err)
+			}
+		case "":
+		default:
+			fmt.Println("Unknown command")
+		}
 	}
 }
