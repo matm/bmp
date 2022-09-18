@@ -6,7 +6,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/rotisserie/eris"
 )
@@ -24,6 +26,31 @@ const (
 	// ReplyACK is mpd's way letting know there is an error.
 	ReplyACK = "ACK"
 )
+
+type song struct {
+	ID           string
+	Album        string
+	Artist       string
+	Date         string
+	Duration     float64
+	File         string
+	Genre        string
+	LastModified string
+	Pos          int64
+	Time         int64
+	Title        string
+	Track        string
+}
+
+type status struct {
+	// Duration of the current song in seconds.
+	Duration float64
+	// Elapsed is the total time elapsed within the current song in seconds, with higher resolution.
+	Elapsed float64
+	SongID  string
+	State   string
+	Volume  int64
+}
 
 func dial() (*net.TCPConn, error) {
 	ips, err := net.LookupIP(os.Getenv("MPD_HOST"))
@@ -43,7 +70,11 @@ func dial() (*net.TCPConn, error) {
 }
 
 func (d *mpd) exec(cmd string) (response, error) {
-	fmt.Fprintf(d.conn, "%s\n", cmd)
+	_, err := d.conn.Write([]byte(cmd + "\n"))
+	if err != nil {
+		return nil, eris.Wrap(err, "write to connection")
+	}
+
 	sc := bufio.NewScanner(d.conn)
 
 	resp := make(response)
@@ -54,7 +85,6 @@ func (d *mpd) exec(cmd string) (response, error) {
 			break
 		}
 		if strings.HasPrefix(line, ReplyACK) {
-			// Some error.
 			return nil, eris.New(line)
 		}
 		sp := strings.Split(line, ": ")
@@ -63,23 +93,69 @@ func (d *mpd) exec(cmd string) (response, error) {
 			resp[sp[0]] = sp[1]
 		}
 	}
-	err := sc.Err()
+	err = sc.Err()
 	if err != nil {
 		return nil, eris.Wrap(err, "scan")
 	}
 	return resp, nil
 }
 
-func (d *mpd) CurrentSong() error {
+func (d *mpd) CurrentSong() (*song, error) {
 	res, err := d.exec("currentsong")
-	fmt.Printf("%v\n", res)
-	return err
+	if err != nil {
+		return nil, eris.Wrap(err, "current song")
+	}
+	dur, err := strconv.ParseFloat(res["duration"], 64)
+	if err != nil {
+		return nil, eris.Wrap(err, "current song: duration")
+	}
+	pos, err := strconv.ParseInt(res["Pos"], 10, 64)
+	if err != nil {
+		return nil, eris.Wrap(err, "current song: pos")
+	}
+	ti, err := strconv.ParseInt(res["Time"], 10, 64)
+	if err != nil {
+		return nil, eris.Wrap(err, "current song: time")
+	}
+	s := &song{
+		ID:           res["Id"],
+		Album:        res["Album"],
+		Artist:       res["Artist"],
+		Date:         res["Date"],
+		Duration:     dur,
+		File:         res["file"],
+		Genre:        res["Genre"],
+		LastModified: res["Last-Modified"],
+		Pos:          pos,
+		Time:         ti,
+		Title:        res["Title"],
+		Track:        res["Track"],
+	}
+	return s, err
 }
 
-func (d *mpd) Status() error {
+func (d *mpd) Status() (*status, error) {
 	res, err := d.exec("status")
-	fmt.Printf("%v\n", res)
-	return err
+	dur, err := strconv.ParseFloat(res["duration"], 64)
+	if err != nil {
+		return nil, eris.Wrap(err, "current song: duration")
+	}
+	ela, err := strconv.ParseFloat(res["elapsed"], 64)
+	if err != nil {
+		return nil, eris.Wrap(err, "current song: elapsed")
+	}
+	vol, err := strconv.ParseInt(res["volume"], 10, 64)
+	if err != nil {
+		return nil, eris.Wrap(err, "current song: volume")
+	}
+	s := &status{
+		Duration: dur,
+		Elapsed:  ela,
+		SongID:   res["songid"],
+		State:    res["state"],
+		Volume:   vol,
+	}
+	return s, err
 }
 
 func (d *mpd) Stats() error {
@@ -126,14 +202,20 @@ func main() {
 			fmt.Println("MARK")
 		case "i":
 			// Current song info.
-			err := mp.CurrentSong()
+			s, err := mp.CurrentSong()
 			if err != nil {
 				log.Print(err)
 			}
-			err = mp.Status()
+			st, err := mp.Status()
 			if err != nil {
 				log.Print(err)
 			}
+			sdur, err := time.ParseDuration(fmt.Sprintf("%fs", st.Elapsed))
+			if err != nil {
+				log.Print(err)
+			}
+			fmt.Printf("[%s] %s: %s\n", st.State, s.Artist, s.Title)
+			fmt.Printf("%02.2f:%02.2f\n", sdur.Minutes(), sdur.Seconds())
 		case "":
 		default:
 			fmt.Println("Unknown command")
