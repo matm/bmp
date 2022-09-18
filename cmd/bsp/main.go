@@ -16,12 +16,20 @@ func secondsToHuman(secs int) string {
 	return fmt.Sprintf("%02d:%02d", m, s)
 }
 
+type bookmark struct {
+	start, end string
+}
+
 func main() {
 	mp := mpd.NewClient()
 	defer mp.Close()
 	r := bufio.NewReader(os.Stdin)
 
 	quit := false
+	// Bookmark start.
+	bms := make([]bookmark, 0)
+	bOpen := false
+
 	for !quit {
 		fmt.Printf("> ")
 		ch, _, err := r.ReadLine()
@@ -32,8 +40,49 @@ func main() {
 		case "q", "quit", "exit":
 			quit = true
 			fmt.Println("Bye!")
-		case "m":
-			fmt.Println("MARK")
+		case "[":
+			// Bookmark start.
+			st, err := mp.Status()
+			if err != nil {
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
+			}
+			if st.State != "play" {
+				fmt.Println("Please starting playing the song first")
+				continue
+			}
+			if bOpen {
+				fmt.Println("Missing closing bookmark, please use ']' first")
+				continue
+			}
+			bOpen = true
+			start := secondsToHuman(int(st.Elapsed))
+			bms = append(bms, bookmark{start: start})
+			fmt.Println(start)
+		case "]":
+			// Bookmark end.
+			st, err := mp.Status()
+			if err != nil {
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
+			}
+			if st.State != "play" {
+				fmt.Println("Please starting playing the song first")
+				continue
+			}
+			if !bOpen {
+				fmt.Println("Missing opening bookmark, please use '[' first")
+				continue
+			}
+			bOpen = false
+			end := secondsToHuman(int(st.Elapsed))
+			bm := &bms[len(bms)-1]
+			bm.end = end
+			fmt.Printf("%s-%s\n", bm.start, bm.end)
 		case "i":
 			// Current song info.
 			s, err := mp.CurrentSong()
@@ -74,11 +123,21 @@ func main() {
 				continue
 			}
 		case "t":
-			// Toogle.
+			// Toogle play/pause.
 			err := mp.Toggle()
 			if err != nil {
 				log.Print(err)
 				continue
+			}
+		case "n":
+			// List all bookmarks for the current song, prefixed with a number.
+			for k, bm := range bms {
+				fmt.Printf("%d\t%s-%s\n", k+1, bm.start, bm.end)
+			}
+		case "p":
+			// List all bookmarks for the current song.
+			for _, bm := range bms {
+				fmt.Printf("%s-%s\n", bm.start, bm.end)
 			}
 		case "":
 		default:

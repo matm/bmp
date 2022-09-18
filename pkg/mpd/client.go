@@ -2,12 +2,14 @@ package mpd
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/matm/bsp/pkg/types"
 	"github.com/rotisserie/eris"
@@ -32,9 +34,10 @@ const (
 )
 
 func dial() (*net.TCPConn, error) {
-	ips, err := net.LookupIP(os.Getenv("MPD_HOST"))
+	host := os.Getenv("MPD_HOST")
+	ips, err := net.LookupIP(host)
 	if err != nil {
-		return nil, eris.Wrap(err, "dial")
+		return nil, eris.Wrapf(err, "can't dial %q", host)
 	}
 	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
 		IP:   ips[0],
@@ -51,7 +54,21 @@ func dial() (*net.TCPConn, error) {
 func (d *Client) exec(cmd string) (response, error) {
 	_, err := d.conn.Write([]byte(cmd + "\n"))
 	if err != nil {
-		return nil, eris.Wrap(err, "write to connection")
+		// Reconnect in case of broken pipe error.
+		if errors.Is(err, syscall.EPIPE) {
+			d.conn.Close()
+			conn, err := dial()
+			if err != nil {
+				return nil, eris.Wrap(err, "(re)dial")
+			}
+			d.conn = conn
+			_, err = d.conn.Write([]byte(cmd + "\n"))
+			if err != nil {
+				return nil, eris.Wrap(err, "exec")
+			}
+		} else {
+			return nil, eris.Wrap(err, "exec")
+		}
 	}
 
 	sc := bufio.NewScanner(d.conn)
