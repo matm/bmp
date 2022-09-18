@@ -20,6 +20,10 @@ type Client struct {
 }
 type response map[string]string
 
+type commander interface {
+	Exec(cmd string) (response, error)
+}
+
 const (
 	// ReplyOK is an OK reply from mpd. The command went fine.
 	ReplyOK = "OK"
@@ -51,7 +55,6 @@ func (d *Client) exec(cmd string) (response, error) {
 	}
 
 	sc := bufio.NewScanner(d.conn)
-
 	resp := make(response)
 
 	for sc.Scan() {
@@ -79,6 +82,10 @@ func (d *Client) CurrentSong() (*types.Song, error) {
 	res, err := d.exec("currentsong")
 	if err != nil {
 		return nil, eris.Wrap(err, "current song")
+	}
+	if res["Id"] == "" {
+		// Empty reply, no current song.
+		return nil, types.ErrNoSong
 	}
 	dur, err := strconv.ParseFloat(res["duration"], 64)
 	if err != nil {
@@ -111,17 +118,24 @@ func (d *Client) CurrentSong() (*types.Song, error) {
 
 func (d *Client) Status() (*types.Status, error) {
 	res, err := d.exec("status")
+	if err != nil {
+		return nil, eris.Wrap(err, "status")
+	}
+	if res["Id"] == "" {
+		// Empty reply, no current song.
+		return nil, types.ErrNoSong
+	}
 	dur, err := strconv.ParseFloat(res["duration"], 64)
 	if err != nil {
-		return nil, eris.Wrap(err, "current song: duration")
+		return nil, eris.Wrap(err, "status: duration")
 	}
 	ela, err := strconv.ParseFloat(res["elapsed"], 64)
 	if err != nil {
-		return nil, eris.Wrap(err, "current song: elapsed")
+		return nil, eris.Wrap(err, "status: elapsed")
 	}
 	vol, err := strconv.ParseInt(res["volume"], 10, 64)
 	if err != nil {
-		return nil, eris.Wrap(err, "current song: volume")
+		return nil, eris.Wrap(err, "status: volume")
 	}
 	s := &types.Status{
 		Duration: dur,

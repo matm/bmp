@@ -5,13 +5,20 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/matm/bsp/pkg/mpd"
+	"github.com/matm/bsp/pkg/types"
 )
+
+func secondsToHuman(secs int) string {
+	m := secs / 60
+	s := secs % 60
+	return fmt.Sprintf("%02d:%02d", m, s)
+}
 
 func main() {
 	mp := mpd.NewClient()
+	defer mp.Close()
 	r := bufio.NewReader(os.Stdin)
 
 	quit := false
@@ -31,35 +38,40 @@ func main() {
 			// Current song info.
 			s, err := mp.CurrentSong()
 			if err != nil {
-				log.Print(err)
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
 			}
 			st, err := mp.Status()
 			if err != nil {
-				log.Print(err)
-			}
-			sdur, err := time.ParseDuration(fmt.Sprintf("%fs", st.Elapsed))
-			if err != nil {
-				log.Print(err)
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
 			}
 			fmt.Printf("[%s] %s: %s\n", st.State, s.Artist, s.Title)
-			fmt.Printf("%02.2f:%02.2f\n", sdur.Minutes(), sdur.Seconds())
+			fmt.Printf("%s/%s\n", secondsToHuman(int(st.Elapsed)), secondsToHuman(int(st.Duration)))
 		case "f":
 			// Forward seek +10s.
 			err := mp.SeekOffset(10)
 			if err != nil {
 				log.Print(err)
+				continue
 			}
 		case "b":
 			// Backward seek -10s.
 			st, err := mp.Status()
 			if err != nil {
 				log.Print(err)
+				continue
 			}
 			// Seek to absolute time. Relative backward seeking not working as expected, whereas
 			// forward seeking works well.
 			err = mp.SeekTo(int(st.Elapsed) - 10)
 			if err != nil {
 				log.Print(err)
+				continue
 			}
 		case "":
 		default:

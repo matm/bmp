@@ -1,5 +1,10 @@
 package types
 
+import "errors"
+
+// ErrNoSong returned when no current song is active.
+var ErrNoSong = errors.New("no current song")
+
 // Song info from MPD.
 type Song struct {
 	ID           string
