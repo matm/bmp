@@ -1,3 +1,3 @@
-## Best Song Part
+## Best Song Parts
 
-`bsp` stands for *Best Song Part*.
+`bsp` stands for *Best Song Parts*.
