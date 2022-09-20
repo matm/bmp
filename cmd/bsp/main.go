@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
+	"strconv"
 
 	"github.com/matm/bsp/pkg/mpd"
 	"github.com/matm/bsp/pkg/types"
@@ -40,9 +42,22 @@ func main() {
 	r := bufio.NewReader(os.Stdin)
 
 	quit := false
-	// Keep track of bookmarks per song. The key is the song ID.
+	// Keep track of bookmarks per song. The key is the song's filename.
 	bms := make(bookmarkSet)
 	bOpen := false
+
+	cmdQuit := regexp.MustCompile(`^q$`)
+	cmdBookmarkStart := regexp.MustCompile(`^\[$`)
+	cmdBookmarkEnd := regexp.MustCompile(`^\]$`)
+	cmdSongInfo := regexp.MustCompile(`^i$`)
+	cmdForward := regexp.MustCompile(`^f$`)
+	cmdBackward := regexp.MustCompile(`^b$`)
+	cmdToggle := regexp.MustCompile(`^t$`)
+	cmdListBookmarks := regexp.MustCompile(`^p$`)
+	cmdListNumberedBookmarks := regexp.MustCompile(`^n$`)
+	cmdSave := regexp.MustCompile(`^w$`)
+	cmdDeleteBookmark := regexp.MustCompile(`^d\d*$`)
+	cmdEmpty := regexp.MustCompile("^$")
 
 	for !quit {
 		fmt.Printf("> ")
@@ -50,11 +65,12 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		switch string(ch) {
-		case "q", "quit", "exit":
+		line := string(ch)
+		switch {
+		case cmdQuit.MatchString(line):
 			quit = true
 			fmt.Println("Bye!")
-		case "[":
+		case cmdBookmarkStart.MatchString(line):
 			// Bookmark start.
 			st, err := mp.Status()
 			if err != nil {
@@ -64,7 +80,7 @@ func main() {
 				continue
 			}
 			if st.State != "play" {
-				fmt.Println("Please starting playing the song first")
+				fmt.Println("Please starting playing a song first")
 				continue
 			}
 			if bOpen {
@@ -86,7 +102,7 @@ func main() {
 			}
 			bms[s.File] = append(bms[s.File], bookmark{start: start})
 			fmt.Println(start)
-		case "]":
+		case cmdBookmarkEnd.MatchString(line):
 			// Bookmark end.
 			st, err := mp.Status()
 			if err != nil {
@@ -96,7 +112,7 @@ func main() {
 				continue
 			}
 			if st.State != "play" {
-				fmt.Println("Please starting playing the song first")
+				fmt.Println("Please starting playing a song first")
 				continue
 			}
 			if !bOpen {
@@ -116,7 +132,7 @@ func main() {
 			bm := &bms[s.File][len(bms[s.File])-1]
 			bm.end = end
 			fmt.Printf("%s-%s\n", bm.start, bm.end)
-		case "i":
+		case cmdSongInfo.MatchString(line):
 			// Current song info.
 			s, err := mp.CurrentSong()
 			if err != nil {
@@ -134,14 +150,14 @@ func main() {
 			}
 			fmt.Printf("[%s] %s: %s\n", st.State, s.Artist, s.Title)
 			fmt.Printf("%s/%s\n", secondsToHuman(int(st.Elapsed)), secondsToHuman(int(st.Duration)))
-		case "f":
+		case cmdForward.MatchString(line):
 			// Forward seek +10s.
 			err := mp.SeekOffset(10)
 			if err != nil {
 				log.Print(err)
 				continue
 			}
-		case "b":
+		case cmdBackward.MatchString(line):
 			// Backward seek -10s.
 			st, err := mp.Status()
 			if err != nil {
@@ -155,14 +171,14 @@ func main() {
 				log.Print(err)
 				continue
 			}
-		case "t":
+		case cmdToggle.MatchString(line):
 			// Toogle play/pause.
 			err := mp.Toggle()
 			if err != nil {
 				log.Print(err)
 				continue
 			}
-		case "n":
+		case cmdListNumberedBookmarks.MatchString(line):
 			// List all bookmarks for the current song, prefixed with a number.
 			s, err := mp.CurrentSong()
 			if err != nil {
@@ -177,7 +193,7 @@ func main() {
 			for k, bm := range bms[s.File] {
 				fmt.Printf("%d\t%s-%s\n", k+1, bm.start, bm.end)
 			}
-		case "p":
+		case cmdListBookmarks.MatchString(line):
 			// List all bookmarks for the current song.
 			s, err := mp.CurrentSong()
 			if err != nil {
@@ -192,18 +208,42 @@ func main() {
 			for _, bm := range bms[s.File] {
 				fmt.Printf("%s-%s\n", bm.start, bm.end)
 			}
-		case "w":
+		case cmdSave.MatchString(line):
 			// Persist to disk.
 			err := save(os.Stdout, bms)
 			if err != nil {
 				log.Print(err)
 			}
-		case "d":
+		case cmdDeleteBookmark.MatchString(line):
 			// Delete a bookmark entry for current song.
+			// Bookmark ID to delete starts at 1.
 			if len(bms) == 0 {
 				continue
 			}
-		case "":
+			s, err := mp.CurrentSong()
+			if err != nil {
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
+			}
+			p := line[1:]
+			if p == "" {
+				fmt.Println("missing bookmark entry number")
+				continue
+			}
+			idx, err := strconv.ParseInt(p, 10, 64)
+			if err != nil {
+				log.Print(err)
+				continue
+			}
+			idx--
+			if int(idx) > len(bms[s.File])-1 || idx <= 0 {
+				fmt.Printf("out of range\n")
+				continue
+			}
+			bms[s.File] = append(bms[s.File][:int(idx)], bms[s.File][int(idx)+1:]...)
+		case cmdEmpty.MatchString(line):
 		default:
 			fmt.Println("Unknown command")
 		}
