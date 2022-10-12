@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/matm/bsp/pkg/config"
 	"github.com/matm/bsp/pkg/mpd"
 	"github.com/matm/bsp/pkg/types"
 	"github.com/rotisserie/eris"
@@ -41,28 +42,21 @@ func humanToSeconds(t string) (int, error) {
 	return p.Hour()*3600 + p.Minute()*60 + p.Second(), nil
 }
 
-type bookmark struct {
-	// Both start and end have MM:SS formatting.
-	start, end string
-}
-
-type bookmarkSet map[string][]bookmark
-
 var mu sync.Mutex
 
-func writeBookmarks(w io.Writer, bs bookmarkSet) int {
+func writeBookmarks(w io.Writer, bs types.BookmarkSet) int {
 	var b strings.Builder
 	for song, bms := range bs {
 		fmt.Fprintf(&b, "song: %s\n", song)
 		for _, bm := range bms {
-			fmt.Fprintf(&b, "%s-%s\n", bm.start, bm.end)
+			fmt.Fprintf(&b, "%s-%s\n", bm.Start, bm.End)
 		}
 	}
 	fmt.Fprintf(w, b.String())
 	return b.Len()
 }
 
-func schedule(mp *mpd.Client, bms *bookmarkSet) {
+func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
 	for {
 		// Get current song.
 		// Current song info.
@@ -82,14 +76,14 @@ func schedule(mp *mpd.Client, bms *bookmarkSet) {
 		mu.Lock()
 		if bookmarks, ok := (*bms)[s.File]; ok {
 			for _, bk := range bookmarks {
-				to, err := humanToSeconds(bk.start)
+				to, err := humanToSeconds(bk.Start)
 				if err != nil {
-					fmt.Printf("error parsing %q", bk.start)
+					fmt.Printf("error parsing %q", bk.Start)
 					continue
 				}
 				err = mp.SeekTo(to)
 				if err != nil {
-					fmt.Printf("could not seek to %s", bk.start)
+					fmt.Printf("could not seek to %s", bk.Start)
 					continue
 				}
 			}
@@ -133,9 +127,18 @@ func main() {
 
 	quit := false
 	// Keep track of bookmarks per song. The key is the song's filename.
-	bms := make(bookmarkSet)
+	bms := make(types.BookmarkSet)
 	// Bracket open, i.e [ for marking the beginning of a range.
 	bOpen := false
+
+	if fname != "" {
+		var err error
+		bms, err = config.ParseBookmarkFile(fname)
+		if err != nil {
+			logError(err)
+			os.Exit(1)
+		}
+	}
 
 	// Set of commands.
 	cmds := loadCommands()
@@ -194,9 +197,9 @@ func main() {
 			start := secondsToHuman(int(st.Elapsed))
 			mu.Lock()
 			if _, ok := bms[s.File]; !ok {
-				bms[s.File] = make([]bookmark, 0)
+				bms[s.File] = make([]types.Bookmark, 0)
 			}
-			bms[s.File] = append(bms[s.File], bookmark{start: start})
+			bms[s.File] = append(bms[s.File], types.Bookmark{Start: start})
 			mu.Unlock()
 			fmt.Println(start)
 		case cmds["bookmarkEnd"].MatchString(line):
@@ -228,9 +231,9 @@ func main() {
 			end := secondsToHuman(int(st.Elapsed))
 			mu.Lock()
 			bm := &bms[s.File][len(bms[s.File])-1]
-			bm.end = end
+			bm.End = end
 			mu.Unlock()
-			fmt.Printf("%s-%s\n", bm.start, bm.end)
+			fmt.Printf("%s-%s\n", bm.Start, bm.End)
 			// Mark buffer as modified.
 			bufferModified = true
 		case cmds["songInfo"].MatchString(line):
@@ -294,7 +297,7 @@ func main() {
 				continue
 			}
 			for k, bm := range bms[s.File] {
-				fmt.Printf("%d\t%s-%s\n", k+1, bm.start, bm.end)
+				fmt.Printf("%d\t%s-%s\n", k+1, bm.Start, bm.End)
 			}
 			mu.Unlock()
 		case cmds["listBookmarks"].MatchString(line):
@@ -312,7 +315,7 @@ func main() {
 				continue
 			}
 			for _, bm := range bms[s.File] {
-				fmt.Printf("%s-%s\n", bm.start, bm.end)
+				fmt.Printf("%s-%s\n", bm.Start, bm.End)
 			}
 			mu.Unlock()
 		case cmds["save"].MatchString(line):
