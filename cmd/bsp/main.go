@@ -121,6 +121,9 @@ func main() {
 	// BUGGY FOR NOW
 	//go schedule(mp, &bms)
 
+	// Checked before exiting.
+	bufferModified := false
+
 	for !quit {
 		fmt.Printf("> ")
 		ch, _, err := r.ReadLine()
@@ -130,6 +133,10 @@ func main() {
 		line := string(ch)
 		switch {
 		case cmdQuit.MatchString(line):
+			if bufferModified {
+				fmt.Println("Warning: bookmarks list modified")
+				break
+			}
 			quit = true
 			fmt.Println("Bye!")
 		case cmdBookmarkStart.MatchString(line):
@@ -198,6 +205,8 @@ func main() {
 			bm.end = end
 			mu.Unlock()
 			fmt.Printf("%s-%s\n", bm.start, bm.end)
+			// Mark buffer as modified.
+			bufferModified = true
 		case cmdSongInfo.MatchString(line):
 			// Current song info.
 			s, err := mp.CurrentSong()
@@ -295,6 +304,7 @@ func main() {
 				}
 				defer f.Close()
 				fmt.Println(writeBookmarks(f, bms))
+				bufferModified = false
 				return nil
 			}
 			if err := persist(); err != nil {
@@ -338,6 +348,8 @@ func main() {
 			}
 			bms[s.File] = append(bms[s.File][:int(idx)], bms[s.File][int(idx)+1:]...)
 			mu.Unlock()
+			// Mark buffer as modified.
+			bufferModified = true
 		case cmdEmpty.MatchString(line):
 		default:
 			fmt.Println("Unknown command")
