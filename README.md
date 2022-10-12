@@ -8,7 +8,7 @@ When listening to music, there is sometimes a favourite moment in a song: a chor
 
 That's what `bsp` is all about: marking all the musical moments you like the most and playing them automatically. These time sliders are saved in an easy to edit, easy to share text file.
 
-`bsp` tries to keep things as simple as possible and provide an enjoyable audio experience.
+`bsp` tries to keep things as simple as possible and provide an enjoyable audio experience. It works on most systems, binaries are provided for Linux, Mac and Windows.
 
 ### Features
 
@@ -17,6 +17,30 @@ That's what `bsp` is all about: marking all the musical moments you like the mos
   - Mark one or many locations while listening to a song
   - Edit those locations (deletion, easy time shifting etc.)
   - Send the song playlist to MPD and start playing your favorite parts
+
+### Usage
+
+Run `bsp` to access the interactive shell:
+```bash
+$ bsp
+>
+```
+
+From there, you can run a couple of commands:
+
+**Command**|**Action**
+---|---
+`q`|Exit the program
+`i`|Show current song information
+`[`|Bookmark start: mark the beginning of the time frame
+`]`|Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song
+`d pos`|Delete bookmark entry at position `pos`
+`f`|Forward seek +10s in current song
+`b`|Backward seek -10s in current song
+`t`|Toggle play/pause of current song
+`p`|List of current bookmarked locations in the current song
+`n`|Numbered list of current bookmarked locations in the current song
+`w [best.txt]`|Show bookmarks list. This is the content that would be saved to disk. Takes an optional argument for the filename to write to. `w best.txt` would write the list to `best.txt`
 
 ### Donations
 

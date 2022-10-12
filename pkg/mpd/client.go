@@ -4,9 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"syscall"
@@ -18,8 +16,10 @@ import (
 // Client to MPD.
 // Doc at https://mpd.readthedocs.io/en/latest/protocol.html.
 type Client struct {
-	conn *net.TCPConn
+	conn net.Conn
+	dial dialer
 }
+
 type response map[string]string
 
 type commander interface {
@@ -33,31 +33,20 @@ const (
 	ReplyACK = "ACK"
 )
 
-func dial() (*net.TCPConn, error) {
-	host := os.Getenv("MPD_HOST")
-	ips, err := net.LookupIP(host)
-	if err != nil {
-		return nil, eris.Wrapf(err, "can't dial %q", host)
-	}
-	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
-		IP:   ips[0],
-		Port: 6600,
-	})
-	if err != nil {
-		return nil, eris.Wrap(err, "dial")
-	}
-	// Keep the TCP connection alive.
-	conn.SetKeepAlive(true)
-	return conn, nil
-}
-
 func (d *Client) exec(cmd string) (response, error) {
+	if d.conn == nil {
+		conn, err := d.dial.Dial()
+		if err != nil {
+			return nil, eris.Wrap(err, "dial")
+		}
+		d.conn = conn
+	}
 	_, err := d.conn.Write([]byte(cmd + "\n"))
 	if err != nil {
 		// Reconnect in case of broken pipe error.
 		if errors.Is(err, syscall.EPIPE) {
 			d.conn.Close()
-			conn, err := dial()
+			conn, err := d.dial.Dial()
 			if err != nil {
 				return nil, eris.Wrap(err, "(re)dial")
 			}
@@ -196,14 +185,15 @@ func (d *Client) Stop() error {
 }
 
 func NewClient() *Client {
-	conn, err := dial()
-	if err != nil {
-		log.Fatal(err)
-	}
-	return &Client{conn}
+	return &Client{dial: defaultDialer}
+	//return &Client{dial: testDialer}
 }
 
 // Close terminates the TCP connection.
 func (d *Client) Close() error {
-	return d.conn.Close()
+	var err error
+	if d.conn != nil {
+		err = d.conn.Close()
+	}
+	return err
 }

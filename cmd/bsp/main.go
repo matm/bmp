@@ -8,15 +8,27 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/matm/bsp/pkg/mpd"
 	"github.com/matm/bsp/pkg/types"
+	"github.com/rotisserie/eris"
 )
 
 func secondsToHuman(secs int) string {
 	m := secs / 60
 	s := secs % 60
 	return fmt.Sprintf("%02d:%02d", m, s)
+}
+
+func humanToSeconds(t string) (int, error) {
+	// FIXME: does not support hours-long songs.
+	p, err := time.Parse("04:05", t)
+	if err != nil {
+		return -1, eris.Wrap(err, "human2seconds")
+	}
+	return p.Hour()*3600 + p.Minute()*60 + p.Second(), nil
 }
 
 type bookmark struct {
@@ -26,6 +38,8 @@ type bookmark struct {
 
 type bookmarkSet map[string][]bookmark
 
+var mu sync.Mutex
+
 func save(w io.Writer, bs bookmarkSet) error {
 	for song, bms := range bs {
 		fmt.Fprintf(w, "song: %s\n", song)
@@ -34,6 +48,43 @@ func save(w io.Writer, bs bookmarkSet) error {
 		}
 	}
 	return nil
+}
+
+func schedule(mp *mpd.Client, bms *bookmarkSet) {
+	for {
+		// Get current song.
+		// Current song info.
+		s, err := mp.CurrentSong()
+		if err != nil {
+			// FIXME: Log error.
+			time.Sleep(time.Second)
+			continue
+		}
+		/*
+			st, err := mp.Status()
+			if err != nil {
+				time.Sleep(time.Second)
+				continue
+			}
+		*/
+		mu.Lock()
+		if bookmarks, ok := (*bms)[s.File]; ok {
+			for _, bk := range bookmarks {
+				to, err := humanToSeconds(bk.start)
+				if err != nil {
+					fmt.Printf("error parsing %q", bk.start)
+					continue
+				}
+				err = mp.SeekTo(to)
+				if err != nil {
+					fmt.Printf("could not seek to %s", bk.start)
+					continue
+				}
+			}
+		}
+		mu.Unlock()
+		time.Sleep(time.Second)
+	}
 }
 
 func main() {
@@ -55,9 +106,13 @@ func main() {
 	cmdToggle := regexp.MustCompile(`^t$`)
 	cmdListBookmarks := regexp.MustCompile(`^p$`)
 	cmdListNumberedBookmarks := regexp.MustCompile(`^n$`)
-	cmdSave := regexp.MustCompile(`^w$`)
+	cmdSave := regexp.MustCompile(`^w ?.*$`)
 	cmdDeleteBookmark := regexp.MustCompile(`^d\d*$`)
 	cmdEmpty := regexp.MustCompile("^$")
+
+	// Run the scheduler.
+	// BUGGY FOR NOW
+	//go schedule(mp, &bms)
 
 	for !quit {
 		fmt.Printf("> ")
@@ -97,10 +152,12 @@ func main() {
 			}
 			bOpen = true
 			start := secondsToHuman(int(st.Elapsed))
+			mu.Lock()
 			if _, ok := bms[s.File]; !ok {
 				bms[s.File] = make([]bookmark, 0)
 			}
 			bms[s.File] = append(bms[s.File], bookmark{start: start})
+			mu.Unlock()
 			fmt.Println(start)
 		case cmdBookmarkEnd.MatchString(line):
 			// Bookmark end.
@@ -129,8 +186,10 @@ func main() {
 			}
 			bOpen = false
 			end := secondsToHuman(int(st.Elapsed))
+			mu.Lock()
 			bm := &bms[s.File][len(bms[s.File])-1]
 			bm.end = end
+			mu.Unlock()
 			fmt.Printf("%s-%s\n", bm.start, bm.end)
 		case cmdSongInfo.MatchString(line):
 			// Current song info.
@@ -187,12 +246,15 @@ func main() {
 				}
 				continue
 			}
+			mu.Lock()
 			if _, ok := bms[s.File]; !ok {
+				mu.Unlock()
 				continue
 			}
 			for k, bm := range bms[s.File] {
 				fmt.Printf("%d\t%s-%s\n", k+1, bm.start, bm.end)
 			}
+			mu.Unlock()
 		case cmdListBookmarks.MatchString(line):
 			// List all bookmarks for the current song.
 			s, err := mp.CurrentSong()
@@ -202,14 +264,17 @@ func main() {
 				}
 				continue
 			}
+			mu.Lock()
 			if _, ok := bms[s.File]; !ok {
+				mu.Unlock()
 				continue
 			}
 			for _, bm := range bms[s.File] {
 				fmt.Printf("%s-%s\n", bm.start, bm.end)
 			}
+			mu.Unlock()
 		case cmdSave.MatchString(line):
-			// Persist to disk.
+			// Write bookmarks buffer to stdout if no filename given.
 			err := save(os.Stdout, bms)
 			if err != nil {
 				log.Print(err)
@@ -217,9 +282,6 @@ func main() {
 		case cmdDeleteBookmark.MatchString(line):
 			// Delete a bookmark entry for current song.
 			// Bookmark ID to delete starts at 1.
-			if len(bms) == 0 {
-				continue
-			}
 			s, err := mp.CurrentSong()
 			if err != nil {
 				if err != types.ErrNoSong {
@@ -227,9 +289,16 @@ func main() {
 				}
 				continue
 			}
+			mu.Lock()
+			if _, ok := bms[s.File]; !ok {
+				fmt.Println("no bookmark for this song")
+				mu.Unlock()
+				continue
+			}
+			mu.Unlock()
 			p := line[1:]
 			if p == "" {
-				fmt.Println("missing bookmark entry number")
+				fmt.Println("missing bookmark entry number (use 'n' command)")
 				continue
 			}
 			idx, err := strconv.ParseInt(p, 10, 64)
@@ -238,11 +307,14 @@ func main() {
 				continue
 			}
 			idx--
-			if int(idx) > len(bms[s.File])-1 || idx <= 0 {
+			mu.Lock()
+			if int(idx) > len(bms[s.File])-1 || idx < 0 {
 				fmt.Printf("out of range\n")
+				mu.Unlock()
 				continue
 			}
 			bms[s.File] = append(bms[s.File][:int(idx)], bms[s.File][int(idx)+1:]...)
+			mu.Unlock()
 		case cmdEmpty.MatchString(line):
 		default:
 			fmt.Println("Unknown command")
