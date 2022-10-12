@@ -284,9 +284,8 @@ func main() {
 			// Write bookmarks buffer to stdout if no filename given.
 			ms := cmdSave.FindStringSubmatch(line)
 			filename := ms[len(ms)-1]
-			dest := os.Stdout
 			if filename == "" {
-				writeBookmarks(dest, bms)
+				writeBookmarks(os.Stdout, bms)
 				break
 			}
 			persist := func() error {
