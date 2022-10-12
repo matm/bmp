@@ -31,6 +31,7 @@ From there, you can run a couple of commands:
 **Command**|**Action**
 ---|---
 `q`|Exit the program
+`Q`|Force exit the program, even with unsaved changes
 `i`|Show current song information
 `[`|Bookmark start: mark the beginning of the time frame
 `]`|Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song

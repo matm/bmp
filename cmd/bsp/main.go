@@ -17,6 +17,10 @@ import (
 	"github.com/rotisserie/eris"
 )
 
+const (
+	exitMessage = "Bye!"
+)
+
 func logError(err error) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
 }
@@ -105,6 +109,7 @@ func main() {
 	bOpen := false
 
 	cmdQuit := regexp.MustCompile(`^q$`)
+	cmdForceQuit := regexp.MustCompile(`^Q$`)
 	cmdBookmarkStart := regexp.MustCompile(`^\[$`)
 	cmdBookmarkEnd := regexp.MustCompile(`^\]$`)
 	cmdSongInfo := regexp.MustCompile(`^i$`)
@@ -132,13 +137,16 @@ func main() {
 		}
 		line := string(ch)
 		switch {
+		case cmdForceQuit.MatchString(line):
+			quit = true
+			fmt.Println(exitMessage)
 		case cmdQuit.MatchString(line):
 			if bufferModified {
 				fmt.Println("Warning: bookmarks list modified")
 				break
 			}
 			quit = true
-			fmt.Println("Bye!")
+			fmt.Println(exitMessage)
 		case cmdBookmarkStart.MatchString(line):
 			// Bookmark start.
 			st, err := mp.Status()
