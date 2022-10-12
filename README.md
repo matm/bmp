@@ -40,7 +40,7 @@ From there, you can run a couple of commands:
 `t`|Toggle play/pause of current song
 `p`|List of current bookmarked locations in the current song
 `n`|Numbered list of current bookmarked locations in the current song
-`w [best.txt]`|Show bookmarks list. This is the content that would be saved to disk. Takes an optional argument for the filename to write to. `w best.txt` would write the list to `best.txt`
+`w [best.txt]`|List bookmarks on standard output. This is the content that would be saved to disk. Takes an optional argument of the filename to write to. For example, `w best.txt` would write the list to `best.txt`
 
 ### Donations
 
