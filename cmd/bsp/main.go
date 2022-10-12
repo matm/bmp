@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -98,7 +99,34 @@ func schedule(mp *mpd.Client, bms *bookmarkSet) {
 	}
 }
 
+func loadCommands() map[string]*regexp.Regexp {
+	cmds := make(map[string]*regexp.Regexp)
+	cs := map[string]string{
+		"backward":              `^b$`,
+		"bookmarkEnd":           `^\]$`,
+		"bookmarkStart":         `^\[$`,
+		"deleteBookmark":        `^d\d*$`,
+		"empty":                 `^$`,
+		"forceQuit":             `^Q$`,
+		"forward":               `^f$`,
+		"listBookmarks":         `^,?p$`,
+		"listNumberedBookmarks": `^,?n$`,
+		"quit":                  `^q$`,
+		"save":                  `^w ?(.*)$`,
+		"songInfo":              `^i$`,
+		"toggle":                `^t$`,
+	}
+	for cmd, re := range cs {
+		cmds[cmd] = regexp.MustCompile(re)
+	}
+	return cmds
+}
+
 func main() {
+	var fname string
+	flag.StringVar(&fname, "f", "", "bookmarks list file to load")
+	flag.Parse()
+
 	mp := mpd.NewClient()
 	defer mp.Close()
 	r := bufio.NewReader(os.Stdin)
@@ -106,21 +134,11 @@ func main() {
 	quit := false
 	// Keep track of bookmarks per song. The key is the song's filename.
 	bms := make(bookmarkSet)
+	// Bracket open, i.e [ for marking the beginning of a range.
 	bOpen := false
 
-	cmdQuit := regexp.MustCompile(`^q$`)
-	cmdForceQuit := regexp.MustCompile(`^Q$`)
-	cmdBookmarkStart := regexp.MustCompile(`^\[$`)
-	cmdBookmarkEnd := regexp.MustCompile(`^\]$`)
-	cmdSongInfo := regexp.MustCompile(`^i$`)
-	cmdForward := regexp.MustCompile(`^f$`)
-	cmdBackward := regexp.MustCompile(`^b$`)
-	cmdToggle := regexp.MustCompile(`^t$`)
-	cmdListBookmarks := regexp.MustCompile(`^p$`)
-	cmdListNumberedBookmarks := regexp.MustCompile(`^n$`)
-	cmdSave := regexp.MustCompile(`^w ?(.*)$`)
-	cmdDeleteBookmark := regexp.MustCompile(`^d\d*$`)
-	cmdEmpty := regexp.MustCompile("^$")
+	// Set of commands.
+	cmds := loadCommands()
 
 	// Run the scheduler.
 	// BUGGY FOR NOW
@@ -137,17 +155,17 @@ func main() {
 		}
 		line := string(ch)
 		switch {
-		case cmdForceQuit.MatchString(line):
+		case cmds["forceQuit"].MatchString(line):
 			quit = true
 			fmt.Println(exitMessage)
-		case cmdQuit.MatchString(line):
+		case cmds["quit"].MatchString(line):
 			if bufferModified {
 				fmt.Println("Warning: bookmarks list modified")
 				break
 			}
 			quit = true
 			fmt.Println(exitMessage)
-		case cmdBookmarkStart.MatchString(line):
+		case cmds["bookmarkStart"].MatchString(line):
 			// Bookmark start.
 			st, err := mp.Status()
 			if err != nil {
@@ -181,7 +199,7 @@ func main() {
 			bms[s.File] = append(bms[s.File], bookmark{start: start})
 			mu.Unlock()
 			fmt.Println(start)
-		case cmdBookmarkEnd.MatchString(line):
+		case cmds["bookmarkEnd"].MatchString(line):
 			// Bookmark end.
 			st, err := mp.Status()
 			if err != nil {
@@ -215,7 +233,7 @@ func main() {
 			fmt.Printf("%s-%s\n", bm.start, bm.end)
 			// Mark buffer as modified.
 			bufferModified = true
-		case cmdSongInfo.MatchString(line):
+		case cmds["songInfo"].MatchString(line):
 			// Current song info.
 			s, err := mp.CurrentSong()
 			if err != nil {
@@ -233,14 +251,14 @@ func main() {
 			}
 			fmt.Printf("[%s] %s: %s\n", st.State, s.Artist, s.Title)
 			fmt.Printf("%s/%s\n", secondsToHuman(int(st.Elapsed)), secondsToHuman(int(st.Duration)))
-		case cmdForward.MatchString(line):
+		case cmds["forward"].MatchString(line):
 			// Forward seek +10s.
 			err := mp.SeekOffset(10)
 			if err != nil {
 				log.Print(err)
 				continue
 			}
-		case cmdBackward.MatchString(line):
+		case cmds["backward"].MatchString(line):
 			// Backward seek -10s.
 			st, err := mp.Status()
 			if err != nil {
@@ -254,14 +272,14 @@ func main() {
 				log.Print(err)
 				continue
 			}
-		case cmdToggle.MatchString(line):
+		case cmds["toggle"].MatchString(line):
 			// Toogle play/pause.
 			err := mp.Toggle()
 			if err != nil {
 				log.Print(err)
 				continue
 			}
-		case cmdListNumberedBookmarks.MatchString(line):
+		case cmds["listNumberedBookmarks"].MatchString(line):
 			// List all bookmarks for the current song, prefixed with a number.
 			s, err := mp.CurrentSong()
 			if err != nil {
@@ -279,7 +297,7 @@ func main() {
 				fmt.Printf("%d\t%s-%s\n", k+1, bm.start, bm.end)
 			}
 			mu.Unlock()
-		case cmdListBookmarks.MatchString(line):
+		case cmds["listBookmarks"].MatchString(line):
 			// List all bookmarks for the current song.
 			s, err := mp.CurrentSong()
 			if err != nil {
@@ -297,9 +315,9 @@ func main() {
 				fmt.Printf("%s-%s\n", bm.start, bm.end)
 			}
 			mu.Unlock()
-		case cmdSave.MatchString(line):
+		case cmds["save"].MatchString(line):
 			// Write bookmarks buffer to stdout if no filename given.
-			ms := cmdSave.FindStringSubmatch(line)
+			ms := cmds["save"].FindStringSubmatch(line)
 			filename := ms[len(ms)-1]
 			if filename == "" {
 				writeBookmarks(os.Stdout, bms)
@@ -320,7 +338,7 @@ func main() {
 				break
 			}
 			break
-		case cmdDeleteBookmark.MatchString(line):
+		case cmds["deleteBookmark"].MatchString(line):
 			// Delete a bookmark entry for current song.
 			// Bookmark ID to delete starts at 1.
 			s, err := mp.CurrentSong()
@@ -358,7 +376,7 @@ func main() {
 			mu.Unlock()
 			// Mark buffer as modified.
 			bufferModified = true
-		case cmdEmpty.MatchString(line):
+		case cmds["empty"].MatchString(line):
 		default:
 			fmt.Println("Unknown command")
 		}
