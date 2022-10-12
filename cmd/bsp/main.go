@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,6 +16,10 @@ import (
 	"github.com/matm/bsp/pkg/types"
 	"github.com/rotisserie/eris"
 )
+
+func logError(err error) {
+	fmt.Fprintf(os.Stderr, "error: %v\n", err)
+}
 
 func secondsToHuman(secs int) string {
 	m := secs / 60
@@ -40,14 +45,16 @@ type bookmarkSet map[string][]bookmark
 
 var mu sync.Mutex
 
-func save(w io.Writer, bs bookmarkSet) error {
+func writeBookmarks(w io.Writer, bs bookmarkSet) int {
+	var b strings.Builder
 	for song, bms := range bs {
-		fmt.Fprintf(w, "song: %s\n", song)
+		fmt.Fprintf(&b, "song: %s\n", song)
 		for _, bm := range bms {
-			fmt.Fprintf(w, "%s-%s\n", bm.start, bm.end)
+			fmt.Fprintf(&b, "%s-%s\n", bm.start, bm.end)
 		}
 	}
-	return nil
+	fmt.Fprintf(w, b.String())
+	return b.Len()
 }
 
 func schedule(mp *mpd.Client, bms *bookmarkSet) {
@@ -106,7 +113,7 @@ func main() {
 	cmdToggle := regexp.MustCompile(`^t$`)
 	cmdListBookmarks := regexp.MustCompile(`^p$`)
 	cmdListNumberedBookmarks := regexp.MustCompile(`^n$`)
-	cmdSave := regexp.MustCompile(`^w ?.*$`)
+	cmdSave := regexp.MustCompile(`^w ?(.*)$`)
 	cmdDeleteBookmark := regexp.MustCompile(`^d\d*$`)
 	cmdEmpty := regexp.MustCompile("^$")
 
@@ -275,10 +282,27 @@ func main() {
 			mu.Unlock()
 		case cmdSave.MatchString(line):
 			// Write bookmarks buffer to stdout if no filename given.
-			err := save(os.Stdout, bms)
-			if err != nil {
-				log.Print(err)
+			ms := cmdSave.FindStringSubmatch(line)
+			filename := ms[len(ms)-1]
+			dest := os.Stdout
+			if filename == "" {
+				writeBookmarks(dest, bms)
+				break
 			}
+			persist := func() error {
+				f, err := os.Create(filename)
+				if err != nil {
+					return eris.Wrap(err, "save bookmark file")
+				}
+				defer f.Close()
+				fmt.Println(writeBookmarks(f, bms))
+				return nil
+			}
+			if err := persist(); err != nil {
+				logError(err)
+				break
+			}
+			break
 		case cmdDeleteBookmark.MatchString(line):
 			// Delete a bookmark entry for current song.
 			// Bookmark ID to delete starts at 1.
