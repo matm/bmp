@@ -36,6 +36,7 @@ From there, you can run a couple of commands:
 `[`|Bookmark start: mark the beginning of the time frame
 `]`|Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song
 `d pos`|Delete bookmark entry at position `pos`
+`r`|Run the current bookmarked songs and starts playing only the greatest parts you like!
 `f`|Forward seek +10s in current song
 `b`|Backward seek -10s in current song
 `t`|Toggle play/pause of current song
