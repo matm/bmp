@@ -84,6 +84,7 @@ func (d *Client) exec(cmd string) (response, error) {
 	return resp, nil
 }
 
+// CurrentSong gets detailed information about the song being played.
 func (d *Client) CurrentSong() (*types.Song, error) {
 	res, err := d.exec("currentsong")
 	if err != nil {
@@ -122,6 +123,8 @@ func (d *Client) CurrentSong() (*types.Song, error) {
 	return s, err
 }
 
+// Status get shorter but useful information about the current song, like
+// the song ID and the time elapsed in the song.
 func (d *Client) Status() (*types.Status, error) {
 	res, err := d.exec("status")
 	if err != nil {
@@ -153,7 +156,9 @@ func (d *Client) Status() (*types.Status, error) {
 	return s, err
 }
 
+// Stats returns some DB stats.
 func (d *Client) Stats() error {
+	// FIXME: return a Stat instance instead of printing.
 	res, err := d.exec("stats")
 	fmt.Printf("%v\n", res)
 	return eris.Wrap(err, "stats")
@@ -165,6 +170,7 @@ func (d *Client) Toggle() error {
 	return eris.Wrap(err, "toggle")
 }
 
+// SeekOffset seeks to the time relative to the current playing position.
 func (d *Client) SeekOffset(offset int) error {
 	sig := "+"
 	if offset < 0 {
@@ -174,16 +180,35 @@ func (d *Client) SeekOffset(offset int) error {
 	return err
 }
 
+// SeekTo seeks to the position TIME in seconds within the current song.
 func (d *Client) SeekTo(seconds int) error {
 	_, err := d.exec(fmt.Sprintf("seekcur %d", seconds))
-	return err
+	return eris.Wrap(err, "seekcur")
 }
 
+// Stop stops playing.
 func (d *Client) Stop() error {
 	_, err := d.exec("stop")
-	return err
+	return eris.Wrap(err, "stop")
 }
 
+// AddToQueue adds a song to the playlist and returns the song id.
+func (d *Client) AddToQueue(song string) (int64, error) {
+	res, err := d.exec(fmt.Sprintf("addid %s", song))
+	id, err := strconv.ParseInt(res["Id"], 10, 64)
+	if err != nil {
+		return -1, eris.Wrap(err, "id")
+	}
+	return id, eris.Wrap(err, "addid")
+}
+
+// PlaySongID Begins playing the playlist at song ID.
+func (d *Client) PlaySongID(ID int64) error {
+	_, err := d.exec(fmt.Sprintf("playid %d", ID))
+	return eris.Wrap(err, "playid")
+}
+
+// NewClient creates a new MPD client.
 func NewClient() *Client {
 	return &Client{dial: defaultDialer}
 	//return &Client{dial: testDialer}

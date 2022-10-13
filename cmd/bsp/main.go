@@ -106,6 +106,7 @@ func loadCommands() map[string]*regexp.Regexp {
 		"listBookmarks":         `^,?p$`,
 		"listNumberedBookmarks": `^,?n$`,
 		"quit":                  `^q$`,
+		"run":                   `^r$`,
 		"save":                  `^w ?(.*)$`,
 		"songInfo":              `^i$`,
 		"toggle":                `^t$`,
@@ -379,6 +380,21 @@ func main() {
 			mu.Unlock()
 			// Mark buffer as modified.
 			bufferModified = true
+		case cmds["run"].MatchString(line):
+			// Build and submit a playlist to MPD.
+			ids := make([]int64, 0)
+			for song := range bms {
+				id, err := mp.AddToQueue(song)
+				if err != nil {
+					logError(err)
+				}
+				ids = append(ids, id)
+			}
+			// Play first added song.
+			err = mp.PlaySongID(ids[0])
+			if err != nil {
+				logError(err)
+			}
 		case cmds["empty"].MatchString(line):
 		default:
 			fmt.Println("Unknown command")
