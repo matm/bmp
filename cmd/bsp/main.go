@@ -56,43 +56,6 @@ func writeBookmarks(w io.Writer, bs types.BookmarkSet) int {
 	return b.Len()
 }
 
-func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
-	for {
-		// Get current song.
-		// Current song info.
-		s, err := mp.CurrentSong()
-		if err != nil {
-			// FIXME: Log error.
-			time.Sleep(time.Second)
-			continue
-		}
-		/*
-			st, err := mp.Status()
-			if err != nil {
-				time.Sleep(time.Second)
-				continue
-			}
-		*/
-		mu.Lock()
-		if bookmarks, ok := (*bms)[s.File]; ok {
-			for _, bk := range bookmarks {
-				to, err := humanToSeconds(bk.Start)
-				if err != nil {
-					fmt.Printf("error parsing %q", bk.Start)
-					continue
-				}
-				err = mp.SeekTo(to)
-				if err != nil {
-					fmt.Printf("could not seek to %s", bk.Start)
-					continue
-				}
-			}
-		}
-		mu.Unlock()
-		time.Sleep(time.Second)
-	}
-}
-
 func loadCommands() map[string]*regexp.Regexp {
 	cmds := make(map[string]*regexp.Regexp)
 	cs := map[string]string{
@@ -109,6 +72,7 @@ func loadCommands() map[string]*regexp.Regexp {
 		"run":                   `^r$`,
 		"save":                  `^w ?(.*)$`,
 		"songInfo":              `^i$`,
+		"stop":                  `^s$`,
 		"toggle":                `^t$`,
 	}
 	for cmd, re := range cs {
@@ -139,14 +103,30 @@ func main() {
 			logError(err)
 			os.Exit(1)
 		}
+		// Since a bookmark file is provided, let load the playlist and play it
+		// in auto mode.
+		// Build and submit a playlist to MPD.
+		ids := make([]int64, 0)
+		for song := range bms {
+			id, err := mp.AddToQueue(song)
+			if err != nil {
+				logError(eris.Wrap(err, "run cmd"))
+			}
+			ids = append(ids, id)
+		}
+		// Play first added song.
+		err = mp.PlaySongID(ids[0])
+		if err != nil {
+			logError(err)
+		}
+		autoplay = true
 	}
+
+	// Run the scheduler.
+	go schedule(mp, &bms)
 
 	// Set of commands.
 	cmds := loadCommands()
-
-	// Run the scheduler.
-	// BUGGY FOR NOW
-	//go schedule(mp, &bms)
 
 	// Checked before exiting.
 	bufferModified := false
@@ -381,20 +361,9 @@ func main() {
 			// Mark buffer as modified.
 			bufferModified = true
 		case cmds["run"].MatchString(line):
-			// Build and submit a playlist to MPD.
-			ids := make([]int64, 0)
-			for song := range bms {
-				id, err := mp.AddToQueue(song)
-				if err != nil {
-					logError(err)
-				}
-				ids = append(ids, id)
-			}
-			// Play first added song.
-			err = mp.PlaySongID(ids[0])
-			if err != nil {
-				logError(err)
-			}
+			autoplay = true
+		case cmds["stop"].MatchString(line):
+			autoplay = false
 		case cmds["empty"].MatchString(line):
 		default:
 			fmt.Println("Unknown command")

@@ -1,4 +1,5 @@
 v 1.0
+  - Play only the best parts after run command. #16
   - New 'r' command that sends the playlist to MPD. #12
   - New '-f' flag to load a song bookmarks file. #10
   - New 'Q' command to exit the program even with unsaved changes. #4
