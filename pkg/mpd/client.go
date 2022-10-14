@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/matm/bsp/pkg/types"
+	"github.com/matm/bmp/pkg/types"
 	"github.com/rotisserie/eris"
 )
 

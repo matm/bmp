@@ -13,9 +13,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/matm/bsp/pkg/config"
-	"github.com/matm/bsp/pkg/mpd"
-	"github.com/matm/bsp/pkg/types"
+	"github.com/matm/bmp/pkg/config"
+	"github.com/matm/bmp/pkg/mpd"
+	"github.com/matm/bmp/pkg/types"
 	"github.com/rotisserie/eris"
 )
 

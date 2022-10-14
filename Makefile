@@ -1,7 +1,7 @@
-.PHONY: bsp
+.PHONY: bmp
 
 all:
-	go build github.com/matm/bsp/cmd/bsp
+	go build github.com/matm/bmp/cmd/bmp
 
 clean:
-	rm -f bsp
+	rm -f bmp

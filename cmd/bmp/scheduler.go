@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/matm/bsp/pkg/mpd"
-	"github.com/matm/bsp/pkg/types"
+	"github.com/matm/bmp/pkg/mpd"
+	"github.com/matm/bmp/pkg/types"
 )
 
 var autoplay = false

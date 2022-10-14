@@ -1,4 +1,4 @@
-module github.com/matm/bsp
+module github.com/matm/bmp
 
 go 1.19
 
