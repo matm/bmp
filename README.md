@@ -1,14 +1,14 @@
 ## Best Song Parts
 
-`bsp` stands for *Best Song Parts*. It's a simple CLI tool working along with the [Music Player Daemon (MPD)](https://www.musicpd.org/).
+`bmp` stands for *Best Music Parts*. It's a simple CLI tool working along with the [Music Player Daemon (MPD)](https://www.musicpd.org/).
 
 ### Purpose
 
 When listening to music, there is sometimes a favourite moment in a song: a chorus, a guitar solo, an amazing variation, whatever. Something you love. A part of a song that you wish you could remember the position of so you could listen to it again at any time.
 
-That's what `bsp` is all about: marking all the musical moments you like the most and playing them automatically. These time sliders are saved in an easy to edit, easy to share text file.
+That's what `bmp` is all about: marking all the musical moments you like the most and playing them automatically. These time sliders are saved in an easy to edit, easy to share text file.
 
-`bsp` tries to keep things as simple as possible and provide an enjoyable audio experience. It works on most systems, binaries are provided for Linux, Mac and Windows.
+`bmp` tries to keep things as simple as possible and provide an enjoyable audio experience. It works on most systems, binaries are provided for Linux, Mac and Windows.
 
 ### Features
 
@@ -20,9 +20,9 @@ That's what `bsp` is all about: marking all the musical moments you like the mos
 
 ### Usage
 
-Run `bsp` to access the interactive shell:
+Run `bmp` to access the interactive shell:
 ```bash
-$ bsp
+$ bmp
 >
 ```
 
