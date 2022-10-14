@@ -10,7 +10,7 @@ import (
 
 var autoplay = false
 
-const schedSleep = time.Second
+const schedSleep = 500 * time.Millisecond
 
 func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
 	for {

@@ -103,7 +103,7 @@ func main() {
 			logError(err)
 			os.Exit(1)
 		}
-		// Since a bookmark file is provided, let load the playlist and play it
+		// Since a bookmark file is provided, let's load the playlist and play it
 		// in auto mode.
 		// Build and submit a playlist to MPD.
 		ids := make([]int64, 0)
