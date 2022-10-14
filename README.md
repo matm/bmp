@@ -1,4 +1,4 @@
-## Best Song Parts
+## Best Music Parts
 
 `bmp` stands for *Best Music Parts*. It's a simple CLI tool working along with the [Music Player Daemon (MPD)](https://www.musicpd.org/).
 
