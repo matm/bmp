@@ -194,7 +194,7 @@ func (d *Client) Stop() error {
 
 // AddToQueue adds a song to the playlist and returns the song id.
 func (d *Client) AddToQueue(song string) (int64, error) {
-	res, err := d.exec(fmt.Sprintf("addid %s", song))
+	res, err := d.exec(fmt.Sprintf("addid %q", song))
 	id, err := strconv.ParseInt(res["Id"], 10, 64)
 	if err != nil {
 		return -1, eris.Wrap(err, "id")
