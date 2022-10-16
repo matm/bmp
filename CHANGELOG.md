@@ -1,4 +1,5 @@
 v 1.0
+  - Buggy playing if many ranges in song. #21
   - Play only the best parts after run command. #16
   - New 'r' command that sends the playlist to MPD. #12
   - New '-f' flag to load a song bookmarks file. #10
