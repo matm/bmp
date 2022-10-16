@@ -13,6 +13,8 @@ var autoplay = false
 const schedSleep = 500 * time.Millisecond
 
 func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
+	var curSong *types.Song
+
 	for {
 		time.Sleep(schedSleep)
 		if !autoplay {
@@ -31,11 +33,17 @@ func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
 			time.Sleep(time.Second)
 			continue
 		}
+		if curSong == nil {
+			curSong = s
+		} else {
+			if curSong.ID != s.ID {
+				curSong = s
+			}
+		}
 		mu.Lock()
-		inRange := false
 		if bookmarks, ok := (*bms)[s.File]; ok {
 			// This song has bookmarks.
-			for _, bk := range bookmarks {
+			for j, bk := range bookmarks {
 				start, err := humanToSeconds(bk.Start)
 				if err != nil {
 					fmt.Printf("error parsing %q", bk.Start)
@@ -45,21 +53,27 @@ func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
 					// A bookmark range is being defined.
 					break
 				}
-				end, err := humanToSeconds(bk.End)
-				if err != nil {
-					fmt.Printf("error parsing %q", bk.End)
-					continue
-				}
-				if int(st.Elapsed) < start && !inRange {
-					err = mp.SeekTo(start)
-					if err != nil {
-						fmt.Printf("could not seek to %s", bk.Start)
-						continue
+				if int(st.Elapsed) < start {
+					canSeek := false
+					if j == 0 {
+						canSeek = true
+					} else {
+						end, err := humanToSeconds(bookmarks[j-1].End)
+						if err != nil {
+							fmt.Printf("error parsing %q", bk.End)
+							continue
+						}
+						if int(st.Elapsed) > end {
+							canSeek = true
+						}
 					}
-					inRange = true
-				}
-				if int(st.Elapsed) > end {
-					inRange = false
+					if canSeek {
+						err = mp.SeekTo(start)
+						if err != nil {
+							fmt.Printf("could not seek to %s", bk.Start)
+							continue
+						}
+					}
 				}
 			}
 		}
