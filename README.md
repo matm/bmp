@@ -15,7 +15,7 @@ That's what `bmp` is all about: marking all the musical moments you like the mos
 - Interactive shell
 - From this shell
   - Mark one or many locations while listening to a song
-  - Edit those locations (deletion, easy time shifting etc.)
+  - Edit those locations
   - Send the song playlist to MPD and start playing your favorite parts
 
 ### Usage
@@ -23,6 +23,12 @@ That's what `bmp` is all about: marking all the musical moments you like the mos
 Run `bmp` to access the interactive shell:
 ```bash
 $ bmp
+>
+```
+
+or load an existing bookmark file you saved:
+```bash
+$ bmp -f myhits
 >
 ```
 
@@ -50,3 +56,7 @@ From there, you can run a couple of commands:
 If you use this tool and want to support me in its development, a donation would be greatly appreciated!
 
 It's not about the amount at all: making a donation boosts the motivation to work on a project. Thank you very much if you can give anything.
+
+Monero address: `88uoutKJS2w3FfkKyJFsNwKPHzaHfTAo6LyTmHSAoQHgCkCeR8FUG4hZ8oD4fnt8iP7i1Ty72V6CLMHi1yUzLCZKHU1pB7c`
+
+![My monero address](res/qr-donate.png)
