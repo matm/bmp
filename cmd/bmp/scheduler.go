@@ -54,20 +54,20 @@ func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
 					break
 				}
 				if int(st.Elapsed) < start {
-					if j > 0 {
+					canSeek := false
+					if j == 0 {
+						canSeek = true
+					} else {
 						end, err := humanToSeconds(bookmarks[j-1].End)
 						if err != nil {
 							fmt.Printf("error parsing %q", bk.End)
 							continue
 						}
 						if int(st.Elapsed) > end {
-							err = mp.SeekTo(start)
-							if err != nil {
-								fmt.Printf("could not seek to %s", bk.Start)
-								continue
-							}
+							canSeek = true
 						}
-					} else {
+					}
+					if canSeek {
 						err = mp.SeekTo(start)
 						if err != nil {
 							fmt.Printf("could not seek to %s", bk.Start)
