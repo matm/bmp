@@ -13,8 +13,6 @@ var autoplay = false
 const schedSleep = 500 * time.Millisecond
 
 func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
-	var curSong *types.Song
-
 	for {
 		time.Sleep(schedSleep)
 		if !autoplay {
@@ -32,13 +30,6 @@ func schedule(mp *mpd.Client, bms *types.BookmarkSet) {
 		if err != nil {
 			time.Sleep(time.Second)
 			continue
-		}
-		if curSong == nil {
-			curSong = s
-		} else {
-			if curSong.ID != s.ID {
-				curSong = s
-			}
 		}
 		mu.Lock()
 		if bookmarks, ok := (*bms)[s.File]; ok {
