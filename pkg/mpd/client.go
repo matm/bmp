@@ -41,31 +41,40 @@ func (d *Client) exec(cmd string) (response, error) {
 		}
 		d.conn = conn
 	}
+	retry := func(conn net.Conn) error {
+		conn.Close()
+		conn, err := d.dial.Dial()
+		if err != nil {
+			return eris.Wrap(err, "(re)dial")
+		}
+		d.conn = conn
+		_, err = d.conn.Write([]byte(cmd + "\n"))
+		if err != nil {
+			return eris.Wrap(err, "exec")
+		}
+		return nil
+	}
 	_, err := d.conn.Write([]byte(cmd + "\n"))
 	if err != nil {
 		// Reconnect in case of broken pipe error.
 		if errors.Is(err, syscall.EPIPE) {
-			d.conn.Close()
-			conn, err := d.dial.Dial()
+			err := retry(d.conn)
 			if err != nil {
 				return nil, eris.Wrap(err, "(re)dial")
-			}
-			d.conn = conn
-			_, err = d.conn.Write([]byte(cmd + "\n"))
-			if err != nil {
-				return nil, eris.Wrap(err, "exec")
 			}
 		} else {
 			return nil, eris.Wrap(err, "exec")
 		}
 	}
 
-	sc := bufio.NewScanner(d.conn)
 	resp := make(response)
-
+read:
+	sc := bufio.NewScanner(d.conn)
+	emptyReply := true
 	for sc.Scan() {
 		line := sc.Text()
 		if line == ReplyOK {
+			emptyReply = false
 			break
 		}
 		if strings.HasPrefix(line, ReplyACK) {
@@ -80,6 +89,13 @@ func (d *Client) exec(cmd string) (response, error) {
 	err = sc.Err()
 	if err != nil {
 		return nil, eris.Wrap(err, "scan")
+	}
+	if emptyReply {
+		err := retry(d.conn)
+		if err != nil {
+			return nil, eris.Wrap(err, "(re)dial")
+		}
+		goto read
 	}
 	return resp, nil
 }
