@@ -238,3 +238,9 @@ func (d *Client) Close() error {
 	}
 	return err
 }
+
+// Ping pings the MPD daemon.
+func (d *Client) Ping() error {
+	_, err := d.exec("ping")
+	return eris.Wrap(err, "ping")
+}

@@ -89,6 +89,14 @@ func main() {
 
 	mp := mpd.NewClient()
 	defer mp.Close()
+
+	// Exit early if MPD doesn't reply.
+	err := mp.Ping()
+	if err != nil {
+		fmt.Println("MPD error: connection refused")
+		os.Exit(1)
+	}
+
 	r := bufio.NewReader(os.Stdin)
 
 	quit := false
@@ -123,7 +131,7 @@ func main() {
 		autoplay = true
 	}
 
-	// Run the scheduler.
+	// Start the scheduler.
 	go schedule(mp, &bms)
 
 	// Set of commands.
