@@ -18,6 +18,8 @@ import (
 type Client struct {
 	conn net.Conn
 	dial dialer
+	host string
+	port int
 }
 
 type response map[string]string
@@ -35,7 +37,7 @@ const (
 
 func (d *Client) exec(cmd string) (response, error) {
 	if d.conn == nil {
-		conn, err := d.dial.Dial()
+		conn, err := d.dial.Dial(d.host, d.port)
 		if err != nil {
 			return nil, eris.Wrap(err, "dial")
 		}
@@ -43,7 +45,7 @@ func (d *Client) exec(cmd string) (response, error) {
 	}
 	retry := func(conn net.Conn) error {
 		conn.Close()
-		conn, err := d.dial.Dial()
+		conn, err := d.dial.Dial(d.host, d.port)
 		if err != nil {
 			return eris.Wrap(err, "(re)dial")
 		}
@@ -225,8 +227,12 @@ func (d *Client) PlaySongID(ID int64) error {
 }
 
 // NewClient creates a new MPD client.
-func NewClient() *Client {
-	return &Client{dial: defaultDialer}
+func NewClient(host string, port int) *Client {
+	return &Client{
+		host: host,
+		port: port,
+		dial: defaultDialer,
+	}
 	//return &Client{dial: testDialer}
 }
 

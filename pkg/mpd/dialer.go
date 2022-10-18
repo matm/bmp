@@ -2,7 +2,6 @@ package mpd
 
 import (
 	"net"
-	"os"
 	"time"
 
 	"github.com/rotisserie/eris"
@@ -10,8 +9,11 @@ import (
 
 type dialer interface {
 	Name() string
-	Dial() (net.Conn, error)
+	Dial(host string, port int) (net.Conn, error)
 }
+
+// DefaultPort is the default TCP port to the MPD service.
+const DefaultPort = 6600
 
 var (
 	defaultDialer = new(tcpDialer)
@@ -25,15 +27,14 @@ func (t *tcpDialer) Name() string {
 	return "MPD dialer"
 }
 
-func (t *tcpDialer) Dial() (net.Conn, error) {
-	host := os.Getenv("MPD_HOST")
+func (t *tcpDialer) Dial(host string, port int) (net.Conn, error) {
 	ips, err := net.LookupIP(host)
 	if err != nil {
 		return nil, eris.Wrapf(err, "can't dial %q", host)
 	}
 	conn, err := net.DialTCP("tcp", nil, &net.TCPAddr{
 		IP:   ips[0],
-		Port: 6600,
+		Port: port,
 	})
 	if err != nil {
 		return nil, eris.Wrap(err, "dial")
@@ -49,7 +50,7 @@ func (t *fakeDialer) Name() string {
 	return "Test dialer"
 }
 
-func (t *fakeDialer) Dial() (net.Conn, error) {
+func (t *fakeDialer) Dial(host string, port int) (net.Conn, error) {
 	return &fakeConn{}, nil
 }
 

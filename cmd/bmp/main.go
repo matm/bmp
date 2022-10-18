@@ -83,11 +83,18 @@ func loadCommands() map[string]*regexp.Regexp {
 }
 
 func main() {
-	var fname string
+	var fname, mpdHost string
+	var mpdPort int
 	flag.StringVar(&fname, "f", "", "bookmarks list file to load")
+	flag.StringVar(&mpdHost, "host", os.Getenv("MPD_HOST"), "MPD host address")
+	flag.IntVar(&mpdPort, "port", 6600, "MPD host TCP port")
 	flag.Parse()
 
-	mp := mpd.NewClient()
+	if mpdHost == "" {
+		fmt.Println("Missing MPD address. Please provide either $MPD_HOST or use the -host flag")
+		os.Exit(2)
+	}
+	mp := mpd.NewClient(mpdHost, mpdPort)
 	defer mp.Close()
 
 	// Exit early if MPD doesn't reply.
