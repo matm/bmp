@@ -20,6 +20,19 @@ That's what `bmp` is all about: marking all the musical moments you like the mos
 
 ### Usage
 
+```bash
+$ bmp -h
+Usage of bmp:
+  -f string
+        bookmarks list file to load
+  -host string
+        MPD host address
+  -port int
+        MPD host TCP port (default 6600)
+```
+
+To connect to a MPD server, `bmp` reads the `$MPD_HOST` env variable by default. You can also use the `-host` flag to provide a MPD address, i.e. `bmp -host 192.169.1.10`. The default port `6600` will be used.
+
 Run `bmp` to access the interactive shell:
 ```bash
 $ bmp
