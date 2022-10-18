@@ -23,7 +23,13 @@ all: build
 build:
 	@go build -ldflags "all=$(GO_LDFLAGS)" ${MAIN_CMD}
 
-dist: cleardist buildall zip sourcearchive
+dist: cleardist buildall zip sourcearchive checksum
+
+checksum:
+	@for f in ${DISTDIR}/*; do \
+		sha256sum $$f > $$f.sha256; \
+		sed -i 's,${DISTDIR}/,,' $$f.sha256; \
+	done
 
 zip: linux darwin freebsd openbsd windows
 	@rm -rf ${BINDIR}
