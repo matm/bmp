@@ -1,4 +1,5 @@
-v 1.0
+v 0.9
+  - New '-v' flag to show program version. #9
   - Add -host and -port flags to connect to MPD host. #14
   - Gracefully exit if can't connect to MPD on startup. #27
   - Add a short tutorial and asciinema content. #26
