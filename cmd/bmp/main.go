@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -85,10 +86,22 @@ func loadCommands() map[string]*regexp.Regexp {
 func main() {
 	var fname, mpdHost string
 	var mpdPort int
+	var showVersion bool
 	flag.StringVar(&fname, "f", "", "bookmarks list file to load")
 	flag.StringVar(&mpdHost, "host", os.Getenv("MPD_HOST"), "MPD host address")
 	flag.IntVar(&mpdPort, "port", 6600, "MPD host TCP port")
+	flag.BoolVar(&showVersion, "v", false, "show program version")
 	flag.Parse()
+
+	if showVersion {
+		fmt.Printf("Version:      %s\n", config.Version)
+		fmt.Printf("Git revision: %s\n", config.GitRev)
+		fmt.Printf("Git branch:   %s\n", config.GitBranch)
+		fmt.Printf("Go version:   %s\n", runtime.Version())
+		fmt.Printf("Built:        %s\n", config.BuildDate)
+		fmt.Printf("OS/Arch:      %s/%s\n", runtime.GOOS, runtime.GOARCH)
+		return
+	}
 
 	if mpdHost == "" {
 		fmt.Println("Missing MPD address. Please provide either $MPD_HOST or use the -host flag")
