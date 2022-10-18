@@ -1,4 +1,5 @@
 v 0.9
+  - New 'h' command to show some help. #19
   - Add Makefile targets to build binaries amd64 platforms. #24
   - New '-v' flag to show program version. #9
   - Add -host and -port flags to connect to MPD host. #14
