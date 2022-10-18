@@ -29,10 +29,31 @@ $ bmp
 or load an existing bookmark file you saved:
 ```bash
 $ bmp -f myhits
+Loaded 2 songs, 3 bookmarks
 >
 ```
 
-From there, you can run a couple of commands:
+### Tutorial
+
+Let's take a simple example. I just loaded a playlist of Metallica's [Black Album](https://www.youtube.com/watch?v=DtJzRErAJ3Q&list=PLokAorcvoBv9LAxeK6xwqn3rSEEMhGfGr)) that is ready to play.
+
+From there, I want to
+
+1. Listen to track 5, *Wherever I My Roam*
+2. Mark the range 00:48 to 00:56 because I like this part
+3. List to track 8, *Nothing Else Matters*
+4. Mark the range 01:00 to 01:23 then 03:03 to 03:24
+5. List the current bookmarked locations for a quick preview before saving the list
+6. Save the list
+7. Exit and run `bmp` with `-f` this time to load the saved bookmarks and start playing
+
+Here we go:
+
+[![asciicast](https://asciinema.org/a/3Jn1kVJ7MXORbhjqPRBaHajHt.svg)](https://asciinema.org/a/3Jn1kVJ7MXORbhjqPRBaHajHt)
+
+### All Commands
+
+Once in the interactive shell, you can run a couple of commands:
 
 **Command**|**Action**
 ---|---
