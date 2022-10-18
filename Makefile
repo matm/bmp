@@ -66,4 +66,4 @@ cleardist:
 	@rm -rf ${DISTDIR} && mkdir -p ${BINDIR} && mkdir -p ${BUILDDIR}
 
 clean:
-	@rm -rf ${BUILDDIR} ${DISTDIR}
+	@rm -rf ${BIN} ${BUILDDIR} ${DISTDIR}
