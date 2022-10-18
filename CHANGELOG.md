@@ -1,3 +1,6 @@
+v 0.10
+  - dist: generate checksum files. #36
+
 v 0.9
   - New 'h' command to show some help. #19
   - Add Makefile targets to build binaries amd64 platforms. #24
