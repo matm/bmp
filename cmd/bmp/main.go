@@ -73,6 +73,7 @@ var shellCmds = []shellCommand{
 	{"bookmarkStart", "[", `^\[$`, "Bookmark start: mark the beginning of the time frame"},
 	{"bookmarkEnd", "]", `^\]$`, "Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song"},
 	{"deleteBookmark", "d", `^d\d*$`, "Delete bookmark entry at position pos"},
+	{"deleteAllBookmarks", "D", `^D$`, "Delete all bookmark entries for current song"},
 	{"change", "c", `^c(\d{1,2}) (\d{2}:\d{2})-(\d{2}:\d{2})$`, "Change bookmark entry at position pos and set new start and end time boundaries"},
 	{"listBookmarks", "p", `^,?p$`, "List of current bookmarked locations in the current song"},
 	{"listNumberedBookmarks", "n", `^,?n$`, "Numbered list of current bookmarked locations in the current song"},
@@ -189,7 +190,7 @@ func main() {
 			quit = true
 			fmt.Println(exitMessage)
 		case cmds["quit"].MatchString(line):
-			if bufferModified {
+			if bufferModified && len(bms) > 0 {
 				fmt.Println("Warning: bookmarks list modified")
 				break
 			}
@@ -403,6 +404,25 @@ func main() {
 				continue
 			}
 			bms[s.File] = append(bms[s.File][:int(idx)], bms[s.File][int(idx)+1:]...)
+			mu.Unlock()
+			// Mark buffer as modified.
+			bufferModified = true
+		case cmds["deleteAllBookmarks"].MatchString(line):
+			// Delete all bookmark entries for current song.
+			s, err := mp.CurrentSong()
+			if err != nil {
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
+			}
+			mu.Lock()
+			if _, ok := bms[s.File]; !ok {
+				fmt.Println("no bookmark for this song")
+				mu.Unlock()
+				continue
+			}
+			delete(bms, s.File)
 			mu.Unlock()
 			// Mark buffer as modified.
 			bufferModified = true

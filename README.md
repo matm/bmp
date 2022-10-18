@@ -78,24 +78,25 @@ Here we go:
 
 Once in the interactive shell, you can run a couple of commands:
 
-**Command**|**Action**
----|---
-`h`|Show some help
-`q`|Exit the program
-`Q`|Force exit the program, even with unsaved changes
-`i`|Show current song information
-`[`|Bookmark start: mark the beginning of the time frame
-`]`|Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song
-`d pos`|Delete bookmark entry at position `pos`
-`c pos MM:SS-MM:SS`|Change bookmark entry at position `pos` and set new start and end time boundaries
-`r`|Start the autoplay of the best parts
-`s`|Stop the autoplay of the best parts
-`f`|Forward seek +10s in current song
-`b`|Backward seek -10s in current song
-`t`|Toggle play/pause of current song
-`p`|List of current bookmarked locations in the current song
-`n`|Numbered list of current bookmarked locations in the current song
-`w [best.txt]`|List bookmarks on standard output. This is the content that would be saved to disk. Takes an optional argument of the filename to write to. For example, `w best.txt` would write the list to `best.txt`
+**Command**|**Action**|**Version**
+---|---|---
+`h`|Show some help|`v0.9`
+`q`|Exit the program|`v0.9`
+`Q`|Force exit the program, even with unsaved changes|`v0.9`
+`i`|Show current song information|`v0.9`
+`[`|Bookmark start: mark the beginning of the time frame|`v0.9`
+`]`|Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song|`v0.9`
+`d pos`|Delete bookmark entry at position `pos`|`v0.9`
+`D`|Delete all bookmark entries for current song|`v0.10`
+`c pos MM:SS-MM:SS`|Change bookmark entry at position `pos` and set new start and end time boundaries|`v0.9`
+`r`|Start the autoplay of the best parts|`v0.9`
+`s`|Stop the autoplay of the best parts|`v0.9`
+`f`|Forward seek +10s in current song|`v0.9`
+`b`|Backward seek -10s in current song|`v0.9`
+`t`|Toggle play/pause of current song|`v0.9`
+`p`|List of current bookmarked locations in the current song|`v0.9`
+`n`|Numbered list of current bookmarked locations in the current song|`v0.9`
+`w [best.txt]`|List bookmarks on standard output. This is the content that would be saved to disk. Takes an optional argument of the filename to write to. For example, `w best.txt` would write the list to `best.txt`|`v0.9`
 
 ### Donations
 

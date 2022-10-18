@@ -1,4 +1,5 @@
 v 0.10
+  - New D command to delete current bookmark list. #20
   - dist: generate checksum files. #36
 
 v 0.9
