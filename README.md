@@ -42,6 +42,7 @@ From there, you can run a couple of commands:
 `[`|Bookmark start: mark the beginning of the time frame
 `]`|Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song
 `d pos`|Delete bookmark entry at position `pos`
+`c pos MM:SS-MM:SS`|Change bookmark entry at position `pos` and set new start and end time boundaries
 `r`|Start the autoplay of the best parts
 `s`|Stop the autoplay of the best parts
 `f`|Forward seek +10s in current song
