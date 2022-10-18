@@ -418,7 +418,7 @@ func main() {
 			}
 			// Save new value.
 			mu.Lock()
-			bms[s.File][idx] = types.Bookmark{Start: cs[2], End: cs[3]}
+			bms[s.File][idx] = types.Bookmark{Start: start, End: end}
 			mu.Unlock()
 		case cmds["run"].MatchString(line):
 			autoplay = true
