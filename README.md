@@ -18,6 +18,16 @@ That's what `bmp` is all about: marking all the musical moments you like the mos
   - Edit those locations
   - Send the song playlist to MPD and start playing your favorite parts
 
+
+### Installation
+
+Binaries for most amd64 platforms are built for every release. Please just [grab a binary version of the latest release](https://github.com/matm/bmp/releases).
+
+However, if you have a working Go installation and want to build it, just run
+```bash
+$ go install github.com/matm/bmp/cmd/bmp
+```
+
 ### Usage
 
 ```bash
