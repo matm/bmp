@@ -20,6 +20,13 @@ import (
 	"github.com/rotisserie/eris"
 )
 
+type shellCommand struct {
+	name string
+	key  string
+	re   string // Regexp.
+	help string
+}
+
 const (
 	exitMessage = "Bye!"
 )
@@ -57,28 +64,31 @@ func writeBookmarks(w io.Writer, bs types.BookmarkSet) int {
 	return b.Len()
 }
 
+var shellCmds = []shellCommand{
+	{"quit", "q", `^q$`, "Exit the program"},
+	{"forceQuit", "Q", `^Q$`, "Force exit the program, even with unsaved changes"},
+	{"songInfo", "i", `^i$`, "Show current song information"},
+	{"forward", "f", `^f$`, "Forward seek +10s in current song"},
+	{"backward", "b", `^b$`, "Backward seek -10s in current song"},
+	{"bookmarkStart", "[", `^\[$`, "Bookmark start: mark the beginning of the time frame"},
+	{"bookmarkEnd", "]", `^\]$`, "Bookmark end: mark the end of the time frame. The time interval is added to the list of bookmarks for the current song"},
+	{"deleteBookmark", "d", `^d\d*$`, "Delete bookmark entry at position pos"},
+	{"change", "c", `^c(\d{1,2}) (\d{2}:\d{2})-(\d{2}:\d{2})$`, "Change bookmark entry at position pos and set new start and end time boundaries"},
+	{"listBookmarks", "p", `^,?p$`, "List of current bookmarked locations in the current song"},
+	{"listNumberedBookmarks", "n", `^,?n$`, "Numbered list of current bookmarked locations in the current song"},
+	{"save", "w", `^w ?(.*)$`, "List bookmarks on standard output. Writes to file if argument provided"},
+	{"run", "r", `^r$`, "Start the autoplay of the best parts"},
+	{"stop", "s", `^s$`, "Stop the autoplay of the best parts"},
+	{"toggle", "t", `^t$`, "Toggle play/pause of current song"},
+	//
+	{"empty", "", `^$`, ""},
+	{"help", "h", `^h$`, "Show some help"},
+}
+
 func loadCommands() map[string]*regexp.Regexp {
 	cmds := make(map[string]*regexp.Regexp)
-	cs := map[string]string{
-		"backward":              `^b$`,
-		"bookmarkEnd":           `^\]$`,
-		"bookmarkStart":         `^\[$`,
-		"change":                `^c(\d{1,2}) (\d{2}:\d{2})-(\d{2}:\d{2})$`,
-		"deleteBookmark":        `^d\d*$`,
-		"empty":                 `^$`,
-		"forceQuit":             `^Q$`,
-		"forward":               `^f$`,
-		"listBookmarks":         `^,?p$`,
-		"listNumberedBookmarks": `^,?n$`,
-		"quit":                  `^q$`,
-		"run":                   `^r$`,
-		"save":                  `^w ?(.*)$`,
-		"songInfo":              `^i$`,
-		"stop":                  `^s$`,
-		"toggle":                `^t$`,
-	}
-	for cmd, re := range cs {
-		cmds[cmd] = regexp.MustCompile(re)
+	for _, cmd := range shellCmds {
+		cmds[cmd.name] = regexp.MustCompile(cmd.re)
 	}
 	return cmds
 }
@@ -168,6 +178,13 @@ func main() {
 		}
 		line := string(ch)
 		switch {
+		case cmds["help"].MatchString(line):
+			for _, cmd := range shellCmds {
+				if cmd.key == "" || cmd.key == "h" {
+					continue
+				}
+				fmt.Printf("%-3s\t%s\n", cmd.key, cmd.help)
+			}
 		case cmds["forceQuit"].MatchString(line):
 			quit = true
 			fmt.Println(exitMessage)

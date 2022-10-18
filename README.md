@@ -25,7 +25,7 @@ Binaries for most amd64 platforms are built for every release. Please just [grab
 
 However, if you have a working Go installation and want to build it, just run
 ```bash
-$ go install github.com/matm/bmp/cmd/bmp
+$ go install github.com/matm/bmp/cmd/bmp@latest
 ```
 
 ### Usage
@@ -80,6 +80,7 @@ Once in the interactive shell, you can run a couple of commands:
 
 **Command**|**Action**
 ---|---
+`h`|Show some help
 `q`|Exit the program
 `Q`|Force exit the program, even with unsaved changes
 `i`|Show current song information
