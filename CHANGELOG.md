@@ -1,4 +1,5 @@
 v 1.0
+  - Gracefully exit if can't connect to MPD on startup. #27
   - Add a short tutorial and asciinema content. #26
   - New c command to edit a single time range. #13
   - Reconnect to MPD does not work as expected. #5
