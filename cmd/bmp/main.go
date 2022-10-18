@@ -62,6 +62,7 @@ func loadCommands() map[string]*regexp.Regexp {
 		"backward":              `^b$`,
 		"bookmarkEnd":           `^\]$`,
 		"bookmarkStart":         `^\[$`,
+		"change":                `^c(\d{1,2}) (\d{2}:\d{2})-(\d{2}:\d{2})$`,
 		"deleteBookmark":        `^d\d*$`,
 		"empty":                 `^$`,
 		"forceQuit":             `^Q$`,
@@ -341,7 +342,7 @@ func main() {
 			mu.Unlock()
 			p := line[1:]
 			if p == "" {
-				fmt.Println("missing bookmark entry number (use 'n' command)")
+				fmt.Println("missing line number (use 'n' command)")
 				continue
 			}
 			idx, err := strconv.ParseInt(p, 10, 64)
@@ -360,6 +361,65 @@ func main() {
 			mu.Unlock()
 			// Mark buffer as modified.
 			bufferModified = true
+		case cmds["change"].MatchString(line):
+			cs := cmds["change"].FindStringSubmatch(line)
+			// Change a time range (whole line).
+			s, err := mp.CurrentSong()
+			if err != nil {
+				if err != types.ErrNoSong {
+					log.Print(err)
+				}
+				continue
+			}
+			mu.Lock()
+			if _, ok := bms[s.File]; !ok {
+				fmt.Println("no bookmark for this song")
+				mu.Unlock()
+				continue
+			}
+			mu.Unlock()
+			p := cs[1]
+			if p == "" {
+				fmt.Println("missing line number (use 'n' command)")
+				continue
+			}
+			idx, err := strconv.ParseInt(p, 10, 64)
+			if err != nil {
+				log.Print(err)
+				continue
+			}
+			idx--
+			mu.Lock()
+			if int(idx) > len(bms[s.File])-1 || idx < 0 {
+				fmt.Printf("out of range\n")
+				mu.Unlock()
+				continue
+			}
+			mu.Unlock()
+			// Check start and dates are real times and end is after start.
+			start, end := cs[2], cs[3]
+			st, err := humanToSeconds(start)
+			if err != nil {
+				fmt.Printf("wrong start time format %q\n", start)
+				continue
+			}
+			ed, err := humanToSeconds(end)
+			if err != nil {
+				fmt.Printf("wrong end time format %q\n", end)
+				continue
+			}
+			if ed < st {
+				fmt.Println("end time must be after start")
+				continue
+			}
+			if st > int(s.Duration) {
+				fmt.Println("start can't be greater than the song's length")
+				continue
+			}
+			// Save new value.
+			mu.Lock()
+			bms[s.File][idx] = types.Bookmark{Start: cs[2], End: cs[3]}
+			mu.Unlock()
 		case cmds["run"].MatchString(line):
 			autoplay = true
 		case cmds["stop"].MatchString(line):

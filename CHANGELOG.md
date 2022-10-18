@@ -1,4 +1,5 @@
 v 1.0
+  - New c command to edit a single time range. #13
   - Reconnect to MPD does not work as expected. #5
   - Buggy playing if many ranges in song. #21
   - Play only the best parts after run command. #16
