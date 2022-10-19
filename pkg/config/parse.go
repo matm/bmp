@@ -2,12 +2,18 @@ package config
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"regexp"
 
 	"github.com/matm/bmp/pkg/types"
 	"github.com/rotisserie/eris"
+)
+
+var (
+	ErrMissingRanges = errors.New("missing ranges for song, or bad time format")
+	ErrOrphanRange   = errors.New("orphan ranges, missing song")
 )
 
 // ParseBookmarkFile reads a bookmarks file and loads all bookmark entries.
@@ -67,12 +73,12 @@ func ParseBookmarkFile(r io.Reader) (types.BookmarkSet, error) {
 	for song := range bms {
 		if len(bms[song]) == 0 {
 			// No time ranges provided.
-			return nil, eris.Errorf("song %q has no time range(s) specified", song)
+			return nil, eris.Wrap(ErrMissingRanges, song)
 		}
 	}
 	if _, ok := bms[""]; ok {
 		// Orphan ranges.
-		return nil, eris.Errorf("those time ranges don't belong to any song: %v", bms[""])
+		return nil, eris.Wrap(ErrOrphanRange, fmt.Sprintf("%v", bms[""]))
 	}
 	fmt.Printf("Loaded %d songs, %d bookmarks\n", numSongs, numBookmarks)
 	return bms, nil

@@ -145,7 +145,7 @@ func main() {
 		}
 		bms, err = config.ParseBookmarkFile(cf)
 		if err != nil {
-			logError(err)
+			logError(eris.Wrap(err, "parsing"))
 			cf.Close()
 			os.Exit(1)
 		}
