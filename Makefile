@@ -25,6 +25,9 @@ build:
 
 dist: cleardist buildall zip sourcearchive checksum
 
+test:
+	@go test -v ./...
+
 checksum:
 	@for f in ${DISTDIR}/*; do \
 		sha256sum $$f > $$f.sha256; \

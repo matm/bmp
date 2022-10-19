@@ -138,11 +138,19 @@ func main() {
 
 	if fname != "" {
 		var err error
-		bms, err = config.ParseBookmarkFile(fname)
+		cf, err := os.Open(fname)
 		if err != nil {
 			logError(err)
 			os.Exit(1)
 		}
+		bms, err = config.ParseBookmarkFile(cf)
+		if err != nil {
+			logError(err)
+			cf.Close()
+			os.Exit(1)
+		}
+		// Do not defer call since we're entering an infinite loop below.
+		cf.Close()
 		// Since a bookmark file is provided, let's load the playlist and play it
 		// in auto mode.
 		// Build and submit a playlist to MPD.

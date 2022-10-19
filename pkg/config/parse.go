@@ -3,7 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
-	"os"
+	"io"
 	"regexp"
 
 	"github.com/matm/bmp/pkg/types"
@@ -11,12 +11,10 @@ import (
 )
 
 // ParseBookmarkFile reads a bookmarks file and loads all bookmark entries.
-func ParseBookmarkFile(name string) (types.BookmarkSet, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, eris.Wrap(err, "load bookmarks")
+func ParseBookmarkFile(r io.Reader) (types.BookmarkSet, error) {
+	if r == nil {
+		return nil, eris.New("nil reader")
 	}
-	defer f.Close()
 	bms := make(types.BookmarkSet)
 
 	// File format is
@@ -36,7 +34,7 @@ func ParseBookmarkFile(name string) (types.BookmarkSet, error) {
 	commentRE := regexp.MustCompile(`^#`)
 	timeRE := regexp.MustCompile(`^([0-9]{2}:[0-9]{2})-([0-9]{2}:[0-9]{2})`)
 
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(r)
 	numSongs, numBookmarks := 0, 0
 	var songName string
 	for sc.Scan() {
@@ -61,7 +59,7 @@ func ParseBookmarkFile(name string) (types.BookmarkSet, error) {
 		default:
 		}
 	}
-	err = sc.Err()
+	err := sc.Err()
 	if err != nil {
 		return nil, eris.Wrap(err, "bookmark scan")
 	}
