@@ -1,4 +1,5 @@
 v 0.10
+  - Temporary do not build for openbsd and darwin targets. #48
   - Do not write empty buffer to file. #44
   - Improve the interactive prompt. #43
   - Write some unit tests. #41
