@@ -359,6 +359,10 @@ func main() {
 			mu.Unlock()
 		case cmds["save"].MatchString(line):
 			// Write bookmarks buffer to stdout if no filename given.
+			if len(bms) == 0 {
+				fmt.Println("no bookmarks")
+				break
+			}
 			ms := cmds["save"].FindStringSubmatch(line)
 			filename := ms[len(ms)-1]
 			if filename == "" {

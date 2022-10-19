@@ -1,4 +1,5 @@
 v 0.10
+  - Do not write empty buffer to file. #44
   - Improve the interactive prompt. #43
   - Write some unit tests. #41
   - Add AUTHORS file. #37
