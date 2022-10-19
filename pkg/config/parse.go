@@ -12,8 +12,12 @@ import (
 )
 
 var (
+	// ErrMissingRanges is an error when a song name has no related time ranges
+	// or the time format is wrong.
 	ErrMissingRanges = errors.New("missing ranges for song, or bad time format")
-	ErrOrphanRange   = errors.New("orphan ranges, missing song")
+	// ErrOrphanRange is an error when time ranges are found but without any previous
+	// song name.
+	ErrOrphanRange = errors.New("orphan ranges, missing song")
 )
 
 // ParseBookmarkFile reads a bookmarks file and loads all bookmark entries.
