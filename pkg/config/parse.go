@@ -63,6 +63,17 @@ func ParseBookmarkFile(r io.Reader) (types.BookmarkSet, error) {
 	if err != nil {
 		return nil, eris.Wrap(err, "bookmark scan")
 	}
+	// Various syntax checks.
+	for song := range bms {
+		if len(bms[song]) == 0 {
+			// No time ranges provided.
+			return nil, eris.Errorf("song %q has no time range(s) specified", song)
+		}
+	}
+	if _, ok := bms[""]; ok {
+		// Orphan ranges.
+		return nil, eris.Errorf("those time ranges don't belong to any song: %v", bms[""])
+	}
 	fmt.Printf("Loaded %d songs, %d bookmarks\n", numSongs, numBookmarks)
 	return bms, nil
 }
