@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -14,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/c-bata/go-prompt"
 	"github.com/matm/bmp/pkg/config"
 	"github.com/matm/bmp/pkg/mpd"
 	"github.com/matm/bmp/pkg/types"
@@ -94,6 +94,14 @@ func loadCommands() map[string]*regexp.Regexp {
 	return cmds
 }
 
+func completer(d prompt.Document) []prompt.Suggest {
+	return nil
+}
+
+func executor(cmd string) {
+	return
+}
+
 func main() {
 	var fname, mpdHost string
 	var mpdPort int
@@ -127,8 +135,6 @@ func main() {
 		fmt.Println("MPD error: connection refused")
 		os.Exit(1)
 	}
-
-	r := bufio.NewReader(os.Stdin)
 
 	quit := false
 	// Keep track of bookmarks per song. The key is the song's filename.
@@ -179,13 +185,10 @@ func main() {
 	// Checked before exiting.
 	bufferModified := false
 
+	p := prompt.New(executor, completer, prompt.OptionHistory([]string{}))
+
 	for !quit {
-		fmt.Printf("> ")
-		ch, _, err := r.ReadLine()
-		if err != nil {
-			log.Println(err)
-		}
-		line := string(ch)
+		line := p.Input()
 		switch {
 		case cmds["help"].MatchString(line):
 			for _, cmd := range shellCmds {
