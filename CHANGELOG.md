@@ -1,4 +1,5 @@
 v 0.10
+  - Improve the interactive prompt. #43
   - Write some unit tests. #41
   - Add AUTHORS file. #37
   - New D command to delete current bookmark list. #20
