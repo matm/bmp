@@ -16,10 +16,11 @@ type dialer interface {
 const DefaultPort = 6600
 
 var (
-	defaultDialer = new(tcpDialer)
+	netDialer = new(tcpDialer)
 	// Useful for testing.
 	testDialer = new(fakeDialer)
 )
+var defaultDialer = netDialer
 
 type tcpDialer struct{}
 

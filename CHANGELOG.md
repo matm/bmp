@@ -1,4 +1,5 @@
 v 0.10
+  - Write some unit tests. #41
   - Add AUTHORS file. #37
   - New D command to delete current bookmark list. #20
   - dist: generate checksum files. #36

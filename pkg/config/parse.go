@@ -2,21 +2,29 @@ package config
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
-	"os"
+	"io"
 	"regexp"
 
 	"github.com/matm/bmp/pkg/types"
 	"github.com/rotisserie/eris"
 )
 
+var (
+	// ErrMissingRanges is an error when a song name has no related time ranges
+	// or the time format is wrong.
+	ErrMissingRanges = errors.New("missing ranges for song, or bad time format")
+	// ErrOrphanRange is an error when time ranges are found but without any previous
+	// song name.
+	ErrOrphanRange = errors.New("orphan ranges, missing song")
+)
+
 // ParseBookmarkFile reads a bookmarks file and loads all bookmark entries.
-func ParseBookmarkFile(name string) (types.BookmarkSet, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, eris.Wrap(err, "load bookmarks")
+func ParseBookmarkFile(r io.Reader) (types.BookmarkSet, error) {
+	if r == nil {
+		return nil, eris.New("nil reader")
 	}
-	defer f.Close()
 	bms := make(types.BookmarkSet)
 
 	// File format is
@@ -36,7 +44,7 @@ func ParseBookmarkFile(name string) (types.BookmarkSet, error) {
 	commentRE := regexp.MustCompile(`^#`)
 	timeRE := regexp.MustCompile(`^([0-9]{2}:[0-9]{2})-([0-9]{2}:[0-9]{2})`)
 
-	sc := bufio.NewScanner(f)
+	sc := bufio.NewScanner(r)
 	numSongs, numBookmarks := 0, 0
 	var songName string
 	for sc.Scan() {
@@ -61,9 +69,20 @@ func ParseBookmarkFile(name string) (types.BookmarkSet, error) {
 		default:
 		}
 	}
-	err = sc.Err()
+	err := sc.Err()
 	if err != nil {
 		return nil, eris.Wrap(err, "bookmark scan")
+	}
+	// Various syntax checks.
+	for song := range bms {
+		if len(bms[song]) == 0 {
+			// No time ranges provided.
+			return nil, eris.Wrap(ErrMissingRanges, song)
+		}
+	}
+	if _, ok := bms[""]; ok {
+		// Orphan ranges.
+		return nil, eris.Wrap(ErrOrphanRange, fmt.Sprintf("%v", bms[""]))
 	}
 	fmt.Printf("Loaded %d songs, %d bookmarks\n", numSongs, numBookmarks)
 	return bms, nil
