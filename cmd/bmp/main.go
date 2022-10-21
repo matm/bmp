@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/c-bata/go-prompt"
 	"github.com/matm/bmp/pkg/config"
 	"github.com/matm/bmp/pkg/mpd"
 	"github.com/matm/bmp/pkg/types"
@@ -92,14 +91,6 @@ func loadCommands() map[string]*regexp.Regexp {
 		cmds[cmd.name] = regexp.MustCompile(cmd.re)
 	}
 	return cmds
-}
-
-func completer(d prompt.Document) []prompt.Suggest {
-	return nil
-}
-
-func executor(cmd string) {
-	return
 }
 
 func main() {
@@ -185,7 +176,7 @@ func main() {
 	// Checked before exiting.
 	bufferModified := false
 
-	p := prompt.New(executor, completer, prompt.OptionHistory([]string{}))
+	p := newPrompt()
 
 	for !quit {
 		line := p.Input()
