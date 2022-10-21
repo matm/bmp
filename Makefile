@@ -34,7 +34,7 @@ checksum:
 		sed -i 's,${DISTDIR}/,,' $$f.sha256; \
 	done
 
-zip: linux freebsd windows
+zip: linux freebsd openbsd darwin windows
 	@rm -rf ${BINDIR}
 
 linux:
@@ -58,10 +58,15 @@ openbsd:
 		(cd ${DISTDIR} && zip -r ${BUILD_OPENBSD_AMD64}.zip ${BIN})
 
 buildall:
-#@GOOS=darwin ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_DARWIN_AMD64} ${MAIN_CMD}
-#@GOOS=openbsd ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_OPENBSD_AMD64} ${MAIN_CMD}
+	@echo ">>>>>> OpenBSD build <<<<<<<"
+	@GOOS=openbsd ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_OPENBSD_AMD64} ${MAIN_CMD}
+	@echo ">>>>>> FreeBSD build <<<<<<<"
 	@GOOS=freebsd ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_FREEBSD_AMD64} ${MAIN_CMD}
+	@echo ">>>>>> Linux build <<<<<<<"
 	@GOOS=linux ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_LINUX_AMD64} ${MAIN_CMD}
+	@echo ">>>>>> MacOSX build <<<<<<<"
+	@GOOS=darwin ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_DARWIN_AMD64} ${MAIN_CMD}
+	@echo ">>>>>> Windows build <<<<<<<"
 	@GOOS=windows ${GOBUILD64} -v -o ${BUILDDIR}/${BUILD_WINDOWS_AMD64} ${MAIN_CMD}
 
 sourcearchive:
