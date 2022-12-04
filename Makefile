@@ -26,7 +26,7 @@ build:
 dist: cleardist buildall zip sourcearchive checksum
 
 test:
-	@go test -v ./...
+	@go test ./...
 
 checksum:
 	@for f in ${DISTDIR}/*; do \
