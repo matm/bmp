@@ -1,7 +1,10 @@
+v 0.11.0
+  -  Show status bar for a song with the i command. #29 
+
 v 0.10.1
   - Use built-in interactive shell for openbsd and darwin builds. #50
 
-v 0.10
+v 0.10.0
   - Temporary do not build for openbsd and darwin targets. #48
   - Do not write empty buffer to file. #44
   - Improve the interactive prompt. #43
@@ -10,7 +13,7 @@ v 0.10
   - New D command to delete current bookmark list. #20
   - dist: generate checksum files. #36
 
-v 0.9
+v 0.9.0
   - New 'h' command to show some help. #19
   - Add Makefile targets to build binaries amd64 platforms. #24
   - New '-v' flag to show program version. #9
