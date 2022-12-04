@@ -26,9 +26,8 @@ type shellCommand struct {
 	help string
 }
 
-const (
-	exitMessage = "Bye!"
-)
+const exitMessage = "Bye!"
+const statusBarLength = 30
 
 func logError(err error) {
 	fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -284,6 +283,10 @@ func main() {
 			}
 			fmt.Printf("[%s] %s: %s\n", st.State, s.Artist, s.Title)
 			fmt.Printf("%s/%s\n", secondsToHuman(int(st.Elapsed)), secondsToHuman(int(st.Duration)))
+
+			// Display a status bar.
+			bar := makeStatusBar(statusBarLength, st.Elapsed, st.Duration, bms[s.File])
+			fmt.Println(bar)
 		case cmds["forward"].MatchString(line):
 			// Forward seek +10s.
 			err := mp.SeekOffset(10)
